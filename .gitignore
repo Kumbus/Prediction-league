@@ -6,4 +6,22 @@
 .claude/skills/10x-shape/
 .claude/skills/10x-stack-assess/
 .claude/skills/10x-tech-stack-selector/
+.claude/skills/10x-bootstrapper/
+.claude/skills/10x-health-check/
+.claude/skills/10x-rule-review/
+.claude/skills/10x-lesson/
+.claude/skills/10x-agents-md/
 .claude/.10x-cli-manifest.json
+
+.cr/personal
+server/.cr/personal
+# .NET
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+*.user
+.vs/
+
+# Node (client/ also carries its own .gitignore from Vite)
+node_modules/
+dist/
