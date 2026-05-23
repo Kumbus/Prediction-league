@@ -7,7 +7,7 @@ Project-specific onboarding for AI agents. Prediction League: a private, sports-
 Split stack, two independent units:
 
 - `server/` — ASP.NET Core Web API (.NET 10, C#). The riskiest surface (custom scoring engine) lives here for C#'s explicit typing.
-- `client/` — React 19 + Vite SPA (TypeScript) for member screens (standings, prediction submission). Talks to the API over HTTP.
+- `client/` — React 19 + Vite SPA (TypeScript) for member screens (standings, prediction submission). Talks to the API over HTTP. UI is built with **shadcn/ui + Tailwind v4**; primitives are vendored into `client/src/components/ui/` and owned/edited in-repo (not upgraded via npm). `@/*` resolves to `client/src/`.
 
 The two are not wired into one build — run and deploy them separately.
 

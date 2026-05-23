@@ -1,3 +1,8 @@
+# Environment — .env.example is committed; .env holds local values and is ignored
+.env
+.env.local
+.env.*.local
+
 # Logs
 logs
 *.log
