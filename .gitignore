@@ -14,6 +14,11 @@
 .claude/skills/10x-infra-research/
 .claude/.10x-cli-manifest.json
 .claude/skills/10x-roadmap/
+.claude/skills/10x-new/
+.claude/skills/10x-plan/
+.claude/skills/10x-plan-review/
+.claude/skills/10x-implement/
+.claude/skills/10x-archive/
 .claude/prompts/skill-explainer.md
 .cr/personal
 src/server/.cr/personal
