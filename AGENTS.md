@@ -6,20 +6,20 @@ Project-specific onboarding for AI agents. Prediction League: a private, sports-
 
 Split stack, two independent units:
 
-- `server/` — ASP.NET Core Web API (.NET 10, C#). The riskiest surface (custom scoring engine) lives here for C#'s explicit typing.
-- `client/` — React 19 + Vite SPA (TypeScript) for member screens (standings, prediction submission). Talks to the API over HTTP. UI is built with **shadcn/ui + Tailwind v4**; primitives are vendored into `client/src/components/ui/` and owned/edited in-repo (not upgraded via npm). `@/*` resolves to `client/src/`.
+- `src/server/` — ASP.NET Core Web API (.NET 10, C#). The riskiest surface (custom scoring engine) lives here for C#'s explicit typing.
+- `src/client/` — React 19 + Vite SPA (TypeScript) for member screens (standings, prediction submission). Talks to the API over HTTP. UI is built with **shadcn/ui + Tailwind v4**; primitives are vendored into `src/client/src/components/ui/` and owned/edited in-repo (not upgraded via npm). `@/*` resolves to `src/client/src/`.
 
 The two are not wired into one build — run and deploy them separately.
 
 ## Commands
 
-Server (`cd server`):
+Server (`cd src/server`):
 
-- Run: `dotnet run` (dev URL `http://localhost:5185`, see `@server/PredictionLeague.http`)
+- Run: `dotnet run` (dev URL `http://localhost:5185`, see `@src/server/PredictionLeague.http`)
 - Build: `dotnet build`
 - Solution file: `prediction-league.slnx` (note the `.slnx` XML format, not `.sln`)
 
-Client (`cd client`):
+Client (`cd src/client`):
 
 - Dev: `npm run dev`
 - Build: `npm run build` (runs `tsc -b` then `vite build` — type errors fail the build)
@@ -31,10 +31,10 @@ No test suite exists yet in either unit. Don't claim tests pass — there are no
 
 This is early scaffolding. Two traps:
 
-- **No data layer yet.** `server/Controllers/LeaguesController.cs` uses a `static List<League>` in-memory store as a placeholder. The tech-stack plan (`@context/foundation/tech-stack.md`) calls for Entity Framework — when persistence lands, swap the static store, don't build on it.
+- **No data layer yet.** `src/server/Controllers/LeaguesController.cs` uses a `static List<League>` in-memory store as a placeholder. The tech-stack plan (`@context/foundation/tech-stack.md`) calls for Entity Framework — when persistence lands, swap the static store, don't build on it.
 - **No auth yet.** `Program.cs` calls `UseAuthorization()` but nothing is configured. Plan is ASP.NET Core Identity + OAuth (`has_auth: true`).
 
-## Domain model (`server/Models/`)
+## Domain model (`src/server/Models/`)
 
 The scoring system is the core domain concept and is configurable per league:
 
