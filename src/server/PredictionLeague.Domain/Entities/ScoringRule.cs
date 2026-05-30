@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 // One line of a league's custom scoring config: which parameter counts, worth how many points (FR-008).
 public class ScoringRule

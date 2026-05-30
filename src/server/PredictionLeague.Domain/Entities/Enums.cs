@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 public enum MatchStatus
 {

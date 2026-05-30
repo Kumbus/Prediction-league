@@ -1,7 +1,7 @@
 ---
 change_id: layered-backend-persistence
 title: Layered backend + EF Core persistence (roadmap F-01)
-status: plan_reviewed
+status: implementing
 created: 2026-05-28
 updated: 2026-05-30
 archived_at: null

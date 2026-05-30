@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 // Admin-seeded competition (FR-003); fixtures/results ingested from a data API (FR-004).
 public class Tournament

@@ -365,14 +365,14 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 
 #### Automated
 
-- [ ] 1.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [ ] 1.2 All four projects resolve in the solution
-- [ ] 1.3 No stray references to `PredictionLeague.Models` remain
+- [x] 1.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 1.2 All four projects resolve in the solution
+- [x] 1.3 No stray references to `PredictionLeague.Models` remain
 
 #### Manual
 
-- [ ] 1.4 Project dependency directions are correct
-- [ ] 1.5 Dev URL still `http://localhost:5185` and `PredictionLeague.http` resolves
+- [x] 1.4 Project dependency directions are correct
+- [x] 1.5 Dev URL still `http://localhost:5185` and `PredictionLeague.http` resolves
 
 ### Phase 2: EF Core + Identity DbContext
 

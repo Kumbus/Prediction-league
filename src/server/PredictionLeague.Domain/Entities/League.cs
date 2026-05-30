@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 // A private pool tied to one tournament (FR-006) with organizer-defined scoring (FR-008).
 public class League

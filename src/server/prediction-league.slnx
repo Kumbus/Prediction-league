@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="PredictionLeague.csproj" />
+  <Project Path="PredictionLeague.Domain/PredictionLeague.Domain.csproj" />
+  <Project Path="PredictionLeague.Application/PredictionLeague.Application.csproj" />
+  <Project Path="PredictionLeague.Infrastructure/PredictionLeague.Infrastructure.csproj" />
+  <Project Path="PredictionLeague.Api/PredictionLeague.Api.csproj" />
 </Solution>

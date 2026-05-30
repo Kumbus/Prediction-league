@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 // A member's forecast for one match in one league (FR-009). Keyed per (user, league, match).
 public class Prediction

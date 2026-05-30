@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using PredictionLeague.Models;
+using PredictionLeague.Domain.Entities;
 
-namespace PredictionLeague.Controllers;
+namespace PredictionLeague.Api.Controllers;
 
 // Skeleton endpoints for the league lifecycle (FR-006/007/008).
 // In-memory placeholder store — swap for a real data layer when persistence lands.

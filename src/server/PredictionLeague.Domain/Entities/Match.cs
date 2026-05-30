@@ -1,4 +1,4 @@
-namespace PredictionLeague.Models;
+namespace PredictionLeague.Domain.Entities;
 
 // A fixture and its result. Granular events drive scoring (FR-005).
 public class Match
