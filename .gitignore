@@ -30,6 +30,10 @@ publish.zip
 *.user
 .vs/
 
+# Local secrets (docker-compose reads .env; keep real values out of git)
+.env
+!.env.example
+
 # Node (client/ also carries its own .gitignore from Vite)
 node_modules/
 dist/

@@ -379,7 +379,7 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 #### Automated
 
 - [x] 2.1 Solution builds — c27465a
-- [ ] 2.2 `AppDbContext` model validates at design time (deferred to Phase 4 — needs EF.Design tooling)
+- [x] 2.2 `AppDbContext` model validates at design time (deferred to Phase 4 — needs EF.Design tooling)
 
 #### Manual
 
@@ -391,26 +391,26 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 
 #### Automated
 
-- [x] 3.1 Solution builds
+- [x] 3.1 Solution builds — 722b066
 
 #### Manual
 
-- [x] 3.2 `IRepository<T>` exposes only generic CRUD; `ILeagueRepository` extends it
-- [x] 3.3 `BaseRepository<T>` is the shared CRUD base; `LeagueRepository` inherits it
-- [x] 3.4 Repository interfaces in Application; implementations in Infrastructure
+- [x] 3.2 `IRepository<T>` exposes only generic CRUD; `ILeagueRepository` extends it — 722b066
+- [x] 3.3 `BaseRepository<T>` is the shared CRUD base; `LeagueRepository` inherits it — 722b066
+- [x] 3.4 Repository interfaces in Application; implementations in Infrastructure — 722b066
 
 ### Phase 4: Host wiring, connection config & Docker SQL
 
 #### Automated
 
-- [ ] 4.1 Solution builds
-- [ ] 4.2 EF tooling resolves the context (`dotnet ef dbcontext info`)
-- [ ] 4.3 Docker SQL starts and reports healthy
+- [x] 4.1 Solution builds
+- [x] 4.2 EF tooling resolves the context (`dotnet ef dbcontext info`)
+- [x] 4.3 Docker SQL starts and reports healthy
 
 #### Manual
 
-- [ ] 4.4 No connection string / SA password committed to git
-- [ ] 4.5 App starts and connects configuration without throwing
+- [x] 4.4 No connection string / SA password committed to git
+- [x] 4.5 App starts and connects configuration without throwing
 
 ### Phase 5: Initial migration, DB proof & cleanup
 

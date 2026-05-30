@@ -1,0 +1,17 @@
+# Local dev SQL Server — matches prod Azure SQL provider so migrations behave identically.
+# Usage: copy .env.example -> .env, then `docker compose up -d` (run from src/server/).
+# The SA password is read from .env (gitignored); the app connection string lives in user-secrets.
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: predictionleague-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in src/server/.env}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - predictionleague-sqldata:/var/opt/mssql
+
+volumes:
+  predictionleague-sqldata:
