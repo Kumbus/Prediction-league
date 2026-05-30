@@ -378,26 +378,26 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 
 #### Automated
 
-- [x] 2.1 Solution builds
+- [x] 2.1 Solution builds — c27465a
 - [ ] 2.2 `AppDbContext` model validates at design time (deferred to Phase 4 — needs EF.Design tooling)
 
 #### Manual
 
-- [x] 2.3 `AppDbContext` uses `IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>`
-- [x] 2.4 No `Prediction` DbSet present
-- [x] 2.5 Domain entities carry no EF attributes
+- [x] 2.3 `AppDbContext` uses `IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>` — c27465a
+- [x] 2.4 No `Prediction` DbSet present — c27465a
+- [x] 2.5 Domain entities carry no EF attributes — c27465a
 
 ### Phase 3: Repository abstraction + DI
 
 #### Automated
 
-- [ ] 3.1 Solution builds
+- [x] 3.1 Solution builds
 
 #### Manual
 
-- [ ] 3.2 `IRepository<T>` exposes only generic CRUD; `ILeagueRepository` extends it
-- [ ] 3.3 `BaseRepository<T>` is the shared CRUD base; `LeagueRepository` inherits it
-- [ ] 3.4 Repository interfaces in Application; implementations in Infrastructure
+- [x] 3.2 `IRepository<T>` exposes only generic CRUD; `ILeagueRepository` extends it
+- [x] 3.3 `BaseRepository<T>` is the shared CRUD base; `LeagueRepository` inherits it
+- [x] 3.4 Repository interfaces in Application; implementations in Infrastructure
 
 ### Phase 4: Host wiring, connection config & Docker SQL
 
