@@ -76,7 +76,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because the current store is throwaway and every slice writes through this layer. Scope risk: do NOT pre-build the whole schema here — establish the layered skeleton, persistence wiring, and only the entities S-02/S-03 exercise; later slices add their own migrations.
-- **Status:** ready
+- **Status:** done (2026-05-31) — implemented + impl-reviewed; see `context/changes/layered-backend-persistence/`
 
 ### F-02: OAuth sign-in scaffold
 
