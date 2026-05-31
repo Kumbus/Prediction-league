@@ -29,7 +29,7 @@ Free football prediction games today only run on official organizer sites for th
 
 | ID    | Change ID                  | Outcome (user can …)                                                        | Prerequisites      | PRD refs                  | Status   |
 | ----- | -------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------- | -------- |
-| F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | ready    |
+| F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | done     |
 | F-02  | auth-oauth-scaffold        | (foundation) OAuth sign-in scaffold + identity issuing/verification wired    | —                  | FR-001, Access Control    | ready    |
 | F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | blocked  |
 | F-04  | walking-skeleton-deploy     | (foundation) app + Azure SQL deployed end-to-end; first prod migration applied (human-gated) | F-01, F-02         | NFR-freshness, infra-v2   | proposed |
@@ -100,7 +100,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unlocks:** S-02 (admin seeding depends on ingested fixtures), S-07 (scoring needs real results), and reduces Open Roadmap Question #1.
 - **Prerequisites:** F-01
 - **Parallel with:** F-02
-- **Blockers:** Football data API not yet selected — must confirm a source covering fixtures + results + scorers + cards within budget/rate limits (external, vendor decision).
+- **Blockers:** With F-01 done, the **sole** remaining blocker is source selection: the football data API is not yet chosen — must confirm a source covering fixtures + results + scorers + cards within budget/rate limits (external, vendor decision).
 - **Unknowns:**
   - Which API source covers fixtures + results + goal scorers + cards within budget? — Owner: user. Block: yes.
 - **Risk:** The #1 roadmap blocker. Until the source is chosen, ingest cannot be built and granular scoring (FR-005) viability is unknown. Resolving this is the single highest-leverage move — it unblocks F-03, S-02, and transitively the north star.
