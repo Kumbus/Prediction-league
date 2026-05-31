@@ -53,13 +53,13 @@ Navigation aid — groups items that share a Prerequisites chain. Canonical orde
 
 ## Baseline
 
-What's already in place in the codebase as of 2026-05-28 (auto-researched + user-confirmed).
+What's already in place in the codebase as of 2026-05-31 (auto-researched + user-confirmed; updated after F-01).
 Foundations below assume these are present and do NOT re-scaffold them.
 
 - **Frontend:** partial — React 19 + Vite + Tailwind v4 + shadcn primitives (button/card/badge) vendored in `src/client/src/components/ui/`. Only the landing page exists (`src/client/src/App.tsx`); no router, data fetching, or app screens.
-- **Backend / API:** partial **— to be rebuilt (user-confirmed).** Current single-project ASP.NET Core .NET 10 skeleton (`src/server`) with a `LeaguesController` over a `static List<League>` placeholder store is throwaway. Target is a layered solution — **Domain / Application / Infrastructure** — built from scratch. Treated as effectively absent for sequencing; F-01 owns the rebuild.
-- **Data:** absent — no EF Core packages, no DB. Domain model files exist (`League`, `Match`, `Prediction`, `ScoringRule`, `Tournament`, `User`) but are unpersisted. Azure SQL Basic planned per `tech-stack.md` / `infrastructure-v2.md`.
-- **Auth:** absent — `Program.cs` calls `UseAuthorization()` but nothing is configured; no Identity packages, no OAuth. ASP.NET Core Identity + OAuth planned (`has_auth: true`).
+- **Backend / API:** present **— rebuilt in F-01.** Layered solution `Domain` / `Application` / `Infrastructure` / `Api` (`src/server`). The throwaway `static List<League>` controller is gone; persistence goes through repositories (`Application/Abstractions/Persistence`, `Infrastructure/Persistence/Repositories`).
+- **Data:** present **— wired in F-01.** EF Core (SQL Server) + initial migration covering the S-02/S-03 entities and `AspNet*` Identity tables (no `Predictions` yet). Local Docker SQL for dev (auto-migrate in Development); Azure SQL Basic for prod per `tech-stack.md` / `infrastructure-v2.md`. `GET /health/db` proves connectivity.
+- **Auth:** partial **— schema only (F-01).** ASP.NET Core Identity (Guid keys) tables exist; `Program.cs` still calls `UseAuthorization()` with nothing configured. OAuth sign-in is F-02 (`has_auth: true`).
 - **Deploy / infra:** partial — one stale Azure Static Web Apps workflow yml under `.github/workflows/`; full Azure plan in `infrastructure-v2.md` (App Service F1 + Functions Consumption + Static Web Apps + Azure SQL Basic, GitHub Actions manual promotion). No API CI, no Functions project yet.
 - **Observability:** absent — framework defaults only. Application Insights named in `infrastructure-v2.md`, not wired. Not invested under `main_goal: speed`.
 
