@@ -379,7 +379,7 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 #### Automated
 
 - [x] 2.1 Solution builds — c27465a
-- [x] 2.2 `AppDbContext` model validates at design time (deferred to Phase 4 — needs EF.Design tooling)
+- [x] 2.2 `AppDbContext` model validates at design time (deferred to Phase 4 — needs EF.Design tooling) — 8629f34
 
 #### Manual
 
@@ -403,26 +403,26 @@ Migrations are **forward-only** (infra-v2). Local dev auto-applies in Developmen
 
 #### Automated
 
-- [x] 4.1 Solution builds
-- [x] 4.2 EF tooling resolves the context (`dotnet ef dbcontext info`)
-- [x] 4.3 Docker SQL starts and reports healthy
+- [x] 4.1 Solution builds — 8629f34
+- [x] 4.2 EF tooling resolves the context (`dotnet ef dbcontext info`) — 8629f34
+- [x] 4.3 Docker SQL starts and reports healthy — 8629f34
 
 #### Manual
 
-- [x] 4.4 No connection string / SA password committed to git
-- [x] 4.5 App starts and connects configuration without throwing
+- [x] 4.4 No connection string / SA password committed to git — 8629f34
+- [x] 4.5 App starts and connects configuration without throwing — 8629f34
 
 ### Phase 5: Initial migration, DB proof & cleanup
 
 #### Automated
 
-- [ ] 5.1 Solution builds
-- [ ] 5.2 Migration exists (`dotnet ef migrations list` shows `InitialCreate`)
-- [ ] 5.3 Migration applies cleanly to Docker SQL (`dotnet ef database update`)
-- [ ] 5.4 No references to `LeaguesController` / `CreateLeagueRequest` remain
+- [x] 5.1 Solution builds
+- [x] 5.2 Migration exists (`dotnet ef migrations list` shows `InitialCreate`)
+- [x] 5.3 Migration applies cleanly to Docker SQL (`dotnet ef database update`)
+- [x] 5.4 No references to `LeaguesController` / `CreateLeagueRequest` remain
 
 #### Manual
 
-- [ ] 5.5 `dotnet run` auto-applies migration; `GET /health/db` returns `Healthy`
-- [ ] 5.6 DB has domain + `AspNet*` tables, no `Predictions` table
-- [ ] 5.7 Re-running `dotnet run` is idempotent
+- [x] 5.5 `dotnet run` auto-applies migration; `GET /health/db` returns `Healthy`
+- [x] 5.6 DB has domain + `AspNet*` tables, no `Predictions` table
+- [x] 5.7 Re-running `dotnet run` is idempotent

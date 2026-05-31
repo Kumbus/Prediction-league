@@ -18,8 +18,8 @@ No tests exist yet. Don't claim any pass.
 
 ## Traps
 
-- **In-memory placeholder store.** `Controllers/LeaguesController.cs` keeps a `static List<League>`. This is a stand-in, not the data layer — Entity Framework is the plan. Swap it when persistence lands; don't build features on the static store.
-- **Auth declared, not wired.** `Program.cs` calls `UseAuthorization()` but nothing configures it. ASP.NET Core Identity + OAuth is planned.
+- **Persistence landed (F-01).** EF Core (SQL Server) + ASP.NET Core Identity (Guid keys) is wired via the layered `Domain`/`Application`/`Infrastructure`/`Api` projects. League CRUD goes through repositories (`Application/Abstractions/Persistence`, `Infrastructure/Persistence/Repositories`) — the old `static List<League>` controller is gone. Dev auto-migrates on startup; prod migrations are forward-only + human-gated. `GET /health/db` proves DB connectivity.
+- **Auth declared, not wired.** `Program.cs` calls `UseAuthorization()` but nothing configures it. Identity *schema* exists (`AspNet*` tables); OAuth sign-in is F-02.
 
 ## Domain
 
