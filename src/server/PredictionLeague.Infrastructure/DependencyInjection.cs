@@ -22,6 +22,11 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<ILeagueRepository, LeagueRepository>();
+        services.AddScoped<ITournamentRepository, TournamentRepository>();
+        services.AddScoped<IMatchRepository, MatchRepository>();
+        services.AddScoped<ITeamRepository, TeamRepository>();
+        services.AddScoped<IPlayerRepository, PlayerRepository>();
+        services.AddScoped<IMatchEventTypeRepository, MatchEventTypeRepository>();
 
         return services;
     }

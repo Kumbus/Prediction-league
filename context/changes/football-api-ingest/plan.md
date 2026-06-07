@@ -630,25 +630,25 @@ auto-migrates on startup). Prod stays forward-only + human-gated when F-04 lands
 
 #### Automated
 
-- [x] 1.1 Solution builds (`dotnet build prediction-league.slnx`)
-- [x] 1.2 Migration generated without snapshot errors (`dotnet ef migrations add AddFootballIngestModel`)
-- [x] 1.3 Migration applies cleanly on dev startup
-- [x] 1.4 `GET /health/db` healthy after migration
+- [x] 1.1 Solution builds (`dotnet build prediction-league.slnx`) — 07600ce
+- [x] 1.2 Migration generated without snapshot errors (`dotnet ef migrations add AddFootballIngestModel`) — 07600ce
+- [x] 1.3 Migration applies cleanly on dev startup — 07600ce
+- [x] 1.4 `GET /health/db` healthy after migration — 07600ce
 
 #### Manual
 
-- [x] 1.5 New tables exist + `MatchEventTypes` seeded; Match/MatchEvent columns reshaped
-- [x] 1.6 No string `HomeTeam`/`AwayTeam`/`Player` columns remain
+- [x] 1.5 New tables exist + `MatchEventTypes` seeded; Match/MatchEvent columns reshaped — 07600ce
+- [x] 1.6 No string `HomeTeam`/`AwayTeam`/`Player` columns remain — 07600ce
 
 ### Phase 2: Repositories + DI
 
 #### Automated
 
-- [ ] 2.1 Solution builds
+- [x] 2.1 Solution builds
 
 #### Manual
 
-- [ ] 2.2 Repos resolve from DI without missing-registration errors
+- [x] 2.2 Repos resolve from DI without missing-registration errors
 
 ### Phase 3: Typed HTTP Client + DTOs + Config
 
