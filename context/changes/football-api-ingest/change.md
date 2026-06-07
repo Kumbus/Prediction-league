@@ -1,7 +1,7 @@
 ---
 change_id: football-api-ingest
 title: Football data API client + scheduled ingest of fixtures/results
-status: implementing
+status: implemented
 created: 2026-06-04
 updated: 2026-06-07
 archived_at: null
