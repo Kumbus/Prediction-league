@@ -654,8 +654,8 @@ auto-migrates on startup). Prod stays forward-only + human-gated when F-04 lands
 
 #### Automated
 
-- [x] 3.1 Solution builds
-- [x] 3.2 `Microsoft.Extensions.Http.Polly` restores (adapted → `Microsoft.Extensions.Http.Resilience` v10.6.0 / Polly v8)
+- [x] 3.1 Solution builds — be94392
+- [x] 3.2 `Microsoft.Extensions.Http.Polly` restores (adapted → `Microsoft.Extensions.Http.Resilience` v10.6.0 / Polly v8) — be94392
 
 #### Manual
 
@@ -665,7 +665,7 @@ auto-migrates on startup). Prod stays forward-only + human-gated when F-04 lands
 
 #### Automated
 
-- [ ] 4.1 Solution builds
+- [x] 4.1 Solution builds
 
 #### Manual
 

@@ -44,6 +44,8 @@ public static class DependencyInjection
     {
         services.Configure<ApiFootballOptions>(config.GetSection(ApiFootballOptions.SectionName));
 
+        services.AddScoped<IFixtureIngestService, FixtureIngestService>();
+
         services.AddHttpClient<IFootballApiClient, FootballApiClient>((sp, client) =>
             {
                 var options = sp.GetRequiredService<IOptions<ApiFootballOptions>>().Value;
