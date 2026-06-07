@@ -10,6 +10,9 @@ public class Tournament
     // Identifier of this tournament in the external football data API.
     public string? ExternalApiId { get; set; }
 
+    // API league.season — passed to ingest by the production timer (no query param).
+    public int Season { get; set; }
+
     public DateOnly StartDate { get; set; }
 
     public DateOnly EndDate { get; set; }

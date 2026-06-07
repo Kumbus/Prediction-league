@@ -13,6 +13,9 @@ builder.Services.AddOpenApi();
 // EF Core context + repositories (connection string from configuration / user-secrets).
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Football ingest: typed API-Football client + ingest service (shared with the Functions host).
+builder.Services.AddFootballIngest(builder.Configuration);
+
 // DB connectivity probe — proves the persistence stack end-to-end at /health/db.
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 

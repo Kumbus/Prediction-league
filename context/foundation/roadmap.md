@@ -3,7 +3,7 @@ project: "Football Match Prediction App"
 version: 1
 status: draft
 created: 2026-05-28
-updated: 2026-05-31
+updated: 2026-06-04
 prd_version: 1
 main_goal: speed
 top_blocker: external
@@ -29,12 +29,12 @@ Free football prediction games today only run on official organizer sites for th
 
 | ID    | Change ID                  | Outcome (user can …)                                                        | Prerequisites      | PRD refs                  | Status   |
 | ----- | -------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------- | -------- |
-| F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | ready    |
+| F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | done     |
 | F-02  | auth-oauth-scaffold        | (foundation) OAuth sign-in scaffold + identity issuing/verification wired    | —                  | FR-001, Access Control    | ready    |
-| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | blocked  |
+| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | ready    |
 | F-04  | walking-skeleton-deploy     | (foundation) app + Azure SQL deployed end-to-end; first prod migration applied (human-gated) | F-01, F-02         | NFR-freshness, infra-v2   | proposed |
 | S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | proposed |
-| S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | blocked  |
+| S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | proposed |
 | S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | proposed |
 | S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | proposed |
 | S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | proposed |
@@ -49,17 +49,17 @@ Navigation aid — groups items that share a Prerequisites chain. Canonical orde
 | ------ | ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
 | A      | League & scoring loop  | `F-01` → `S-02` → `S-03` → (`S-04` / `S-05`) → `S-06` → `S-07` | The critical path to the north star; biased first under `speed`.     |
 | B      | Identity / sign-in     | `F-02` → `F-04` → `S-01`                                      | `F-04` also needs `F-01` (DB to deploy). `S-01` joins Stream A at `S-03` (organizer must be signed in). |
-| C      | Match data ingest      | `F-03`                                                       | External-API-blocked; joins Stream A at `S-02` and feeds `S-07`.     |
+| C      | Match data ingest      | `F-03`                                                       | Source resolved (API-Football free); ready to build. Joins Stream A at `S-02` and feeds `S-07`. |
 
 ## Baseline
 
-What's already in place in the codebase as of 2026-05-28 (auto-researched + user-confirmed).
+What's already in place in the codebase as of 2026-05-31 (auto-researched + user-confirmed; updated after F-01).
 Foundations below assume these are present and do NOT re-scaffold them.
 
 - **Frontend:** partial — React 19 + Vite + Tailwind v4 + shadcn primitives (button/card/badge) vendored in `src/client/src/components/ui/`. Only the landing page exists (`src/client/src/App.tsx`); no router, data fetching, or app screens.
-- **Backend / API:** partial **— to be rebuilt (user-confirmed).** Current single-project ASP.NET Core .NET 10 skeleton (`src/server`) with a `LeaguesController` over a `static List<League>` placeholder store is throwaway. Target is a layered solution — **Domain / Application / Infrastructure** — built from scratch. Treated as effectively absent for sequencing; F-01 owns the rebuild.
-- **Data:** absent — no EF Core packages, no DB. Domain model files exist (`League`, `Match`, `Prediction`, `ScoringRule`, `Tournament`, `User`) but are unpersisted. Azure SQL Basic planned per `tech-stack.md` / `infrastructure-v2.md`.
-- **Auth:** absent — `Program.cs` calls `UseAuthorization()` but nothing is configured; no Identity packages, no OAuth. ASP.NET Core Identity + OAuth planned (`has_auth: true`).
+- **Backend / API:** present **— rebuilt in F-01.** Layered solution `Domain` / `Application` / `Infrastructure` / `Api` (`src/server`). The throwaway `static List<League>` controller is gone; persistence goes through repositories (`Application/Abstractions/Persistence`, `Infrastructure/Persistence/Repositories`).
+- **Data:** present **— wired in F-01.** EF Core (SQL Server) + initial migration covering the S-02/S-03 entities and `AspNet*` Identity tables (no `Predictions` yet). Local Docker SQL for dev (auto-migrate in Development); Azure SQL Basic for prod per `tech-stack.md` / `infrastructure-v2.md`. `GET /health/db` proves connectivity.
+- **Auth:** partial **— schema only (F-01).** ASP.NET Core Identity (Guid keys) tables exist; `Program.cs` still calls `UseAuthorization()` with nothing configured. OAuth sign-in is F-02 (`has_auth: true`).
 - **Deploy / infra:** partial — one stale Azure Static Web Apps workflow yml under `.github/workflows/`; full Azure plan in `infrastructure-v2.md` (App Service F1 + Functions Consumption + Static Web Apps + Azure SQL Basic, GitHub Actions manual promotion). No API CI, no Functions project yet.
 - **Observability:** absent — framework defaults only. Application Insights named in `infrastructure-v2.md`, not wired. Not invested under `main_goal: speed`.
 
@@ -76,7 +76,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because the current store is throwaway and every slice writes through this layer. Scope risk: do NOT pre-build the whole schema here — establish the layered skeleton, persistence wiring, and only the entities S-02/S-03 exercise; later slices add their own migrations.
-- **Status:** ready
+- **Status:** done (2026-05-31) — implemented + impl-reviewed; see `context/changes/layered-backend-persistence/`
 
 ### F-02: OAuth sign-in scaffold
 
@@ -100,11 +100,11 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unlocks:** S-02 (admin seeding depends on ingested fixtures), S-07 (scoring needs real results), and reduces Open Roadmap Question #1.
 - **Prerequisites:** F-01
 - **Parallel with:** F-02
-- **Blockers:** Football data API not yet selected — must confirm a source covering fixtures + results + scorers + cards within budget/rate limits (external, vendor decision).
+- **Blockers:** — (resolved 2026-06-04). Source selected: **API-Football (api-sports.io) free tier**; direct `x-apisports-key`. See `context/changes/football-api-ingest/api-research.md` (decision) + `api-reference.md` (endpoint/payload contracts).
 - **Unknowns:**
-  - Which API source covers fixtures + results + goal scorers + cards within budget? — Owner: user. Block: yes.
-- **Risk:** The #1 roadmap blocker. Until the source is chosen, ingest cannot be built and granular scoring (FR-005) viability is unknown. Resolving this is the single highest-leverage move — it unblocks F-03, S-02, and transitively the north star.
-- **Status:** blocked
+  - ~~Which API source covers fixtures + results + goal scorers + cards within budget?~~ RESOLVED — API-Football free tier; `Events` endpoint carries goals + cards at €0 (OQ #1).
+- **Risk:** Was the #1 roadmap blocker; source now chosen so ingest can be built and granular scoring (FR-005) is viable at €0. New constraint: **free tier caps 100 req/day** — ingest must be poll-frugal (timer fires in match windows only) + cache hard (persist fixtures/results, pull events once per match after FT); live/15s polling is out of scope v1. Read rate-limit response headers and back off. Path if 100/day pinches: cache harder → $19 Pro (7,500/day, identical shapes) → role-split fallback (see `api-research.md`).
+- **Status:** ready
 
 ### F-04: Walking-skeleton Azure deploy
 
@@ -140,11 +140,11 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **PRD refs:** FR-003, FR-004, FR-005
 - **Prerequisites:** F-01, F-03
 - **Parallel with:** S-01
-- **Blockers:** Football data API selection (inherited from F-03).
+- **Blockers:** — (API selection resolved in F-03). Now gated only by prerequisites (F-03 ingest must ship first).
 - **Unknowns:**
-  - If scorer/card detail is unavailable at the chosen API tier, is final-score-only scoring acceptable for v1? — Owner: user. Block: yes.
-- **Risk:** Gates the whole loop — no seeded matches means nothing to predict or score. Blocked on the same external-API decision as F-03; the granular-detail fallback must be settled before scoring rules (S-04) are designed.
-- **Status:** blocked
+  - ~~If scorer/card detail is unavailable at the chosen API tier, is final-score-only scoring acceptable for v1?~~ RESOLVED — no degrade needed; API-Football free `Events` carries scorers + cards at €0 (OQ #2). S-02 keeps full granular detail.
+- **Risk:** Gates the whole loop — no seeded matches means nothing to predict or score. External-API decision resolved; granular scoring confirmed viable, so S-04 scoring rules can be designed against full scorer/card detail.
+- **Status:** proposed
 
 ### S-03: Organizer creates a league
 
@@ -215,10 +215,10 @@ Foundations below assume these are present and do NOT re-scaffold them.
 | ---------- | --------------------------- | ------------------------------------------------------- | --------------------- | ----- |
 | F-01       | layered-backend-persistence | Rebuild backend into layered solution + EF Core persistence | yes               | Run `/10x-plan layered-backend-persistence` |
 | F-02       | auth-oauth-scaffold         | Scaffold OAuth sign-in (ASP.NET Core Identity)          | yes                   | Run `/10x-plan auth-oauth-scaffold` |
-| F-03       | football-api-ingest         | Football data API client + scheduled ingest             | no                    | Blocked on API selection (OQ #1) |
+| F-03       | football-api-ingest         | Football data API client + scheduled ingest             | yes                   | Source resolved (API-Football free); run `/10x-plan football-api-ingest` |
 | F-04       | walking-skeleton-deploy     | Walking-skeleton Azure deploy (App Service + Azure SQL)  | no                    | Needs F-01, F-02; run `/10x-new walking-skeleton-deploy` then `/10x-plan` |
 | S-01       | user-sign-in                | User can sign in via OAuth                               | no                    | Needs F-02, F-04 |
-| S-02       | admin-seed-tournament       | Admin seeds tournament + match data ingest              | no                    | Blocked on API selection + fallback decision |
+| S-02       | admin-seed-tournament       | Admin seeds tournament + match data ingest              | no                    | API decisions resolved; now needs F-03 + S-01 shipped first |
 | S-03       | organizer-create-league     | Organizer creates a league                              | no                    | Needs S-01, S-02 |
 | S-04       | custom-scoring-rules        | Organizer defines custom scoring rules                  | no                    | Needs S-03; carries scoring-validation unknown |
 | S-05       | invite-and-join-league      | Invite friends and join via invite code                 | no                    | Needs S-03 |
@@ -227,8 +227,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Open Roadmap Questions
 
-1. **Football data API selection** — Owner: user. Block: F-03, S-02 (roadmap-wide for the scoring loop). Must confirm a source covering fixtures, results, goal scorers, and cards within budget/rate limits before ingest is built.
-2. **Granular-detail fallback** — Owner: user. Block: S-02. If scorer/card data is unavailable at the chosen API tier, v1 scoring degrades to final-score-only rules — confirm acceptable before designing S-04.
+1. ~~**Football data API selection**~~ — RESOLVED 2026-06-04: API-Football (api-sports.io) free tier. See `context/changes/football-api-ingest/api-research.md`.
+2. ~~**Granular-detail fallback**~~ — RESOLVED 2026-06-04: no degrade — free `Events` endpoint carries scorers + cards at €0. S-02 keeps granular scoring.
 3. **Scoring-rule validation strategy** — Owner: user + engineering. Block: gates the *quality* of S-07 planning, not its start. How to guarantee the custom-rule engine scores correctly across arbitrary configs (test fixtures, recompute on late corrections).
 4. **Auth provider coverage** — Owner: user. Block: none (F-02 ships with one provider). Allow an alternative sign-in if a member lacks the chosen OAuth provider?
 5. **Confirm target_scale (qps / data_volume)** — Owner: user. Block: none. Estimated low/small for friend-group scale; revisit only if usage assumptions change.
