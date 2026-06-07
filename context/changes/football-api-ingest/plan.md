@@ -659,29 +659,29 @@ auto-migrates on startup). Prod stays forward-only + human-gated when F-04 lands
 
 #### Manual
 
-- [ ] 3.3 Real-key call returns deserialized fixtures; bad/empty key surfaces envelope error, not a crash
+- [x] 3.3 Real-key call returns deserialized fixtures; bad/empty key surfaces envelope error, not a crash
 
 ### Phase 4: Ingest Service
 
 #### Automated
 
-- [x] 4.1 Solution builds
+- [x] 4.1 Solution builds — 4b538c0
 
 #### Manual
 
 - [ ] 4.2 Ingest populates correctly-attributed fixtures/teams/events
 - [ ] 4.3 Second run is idempotent (stable row counts)
-- [ ] 4.4 Pre-kickoff fixture (`204`) ingests without error
+- [x] 4.4 Pre-kickoff fixture (`204`) ingests without error
 
 ### Phase 5: Hosts — Functions Timer + Api Manual Trigger
 
 #### Automated
 
-- [ ] 5.1 Whole solution builds incl. Functions project
-- [ ] 5.2 `prediction-league.slnx` lists `PredictionLeague.Functions`
+- [x] 5.1 Whole solution builds incl. Functions project
+- [x] 5.2 `prediction-league.slnx` lists `PredictionLeague.Functions`
 
 #### Manual
 
-- [ ] 5.3 `POST api/ingest/{tournamentId}` returns counts + populates DB end-to-end
+- [x] 5.3 `POST api/ingest/{tournamentId}` returns counts + populates DB end-to-end
 - [ ] 5.4 Functions host runs locally and timer ingests without error
-- [ ] 5.5 Endpoint not reachable anonymously in non-dev config
+- [x] 5.5 Endpoint not reachable anonymously in non-dev config

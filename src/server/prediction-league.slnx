@@ -3,4 +3,5 @@
   <Project Path="PredictionLeague.Application/PredictionLeague.Application.csproj" />
   <Project Path="PredictionLeague.Infrastructure/PredictionLeague.Infrastructure.csproj" />
   <Project Path="PredictionLeague.Api/PredictionLeague.Api.csproj" />
+  <Project Path="PredictionLeague.Functions/PredictionLeague.Functions.csproj" />
 </Solution>

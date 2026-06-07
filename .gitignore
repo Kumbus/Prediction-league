@@ -35,6 +35,9 @@ publish.zip
 .env
 !.env.example
 
+# Azure Functions local settings (carries connection string + API key)
+local.settings.json
+
 # Node (client/ also carries its own .gitignore from Vite)
 node_modules/
 dist/
