@@ -21,6 +21,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchEvent> MatchEvents => Set<MatchEvent>();
     public DbSet<ScoringRule> ScoringRules => Set<ScoringRule>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<Player> Players => Set<Player>();
+    public DbSet<MatchEventType> MatchEventTypes => Set<MatchEventType>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

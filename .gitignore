@@ -43,3 +43,6 @@ dist/
 .claude/prompts/m1l5-3-extend-prerequisites.md
 .claude/prompts/m1l5-2-constrain-approach.md
 .claude/prompts/m1l5-4-store-plan.md
+.claude/skills/10x-research/SKILL.md
+.claude/skills/10x-frame/SKILL.md
+.claude/commands/exa-setup.md
