@@ -35,16 +35,42 @@ public sealed class FootballApiClient : IFootballApiClient
     public async Task<FixturesResponse> GetFixturesAsync(string leagueId, int season, DateOnly date, CancellationToken cancellationToken = default)
     {
         var requestUri = $"fixtures?league={Uri.EscapeDataString(leagueId)}&season={season}&date={date:yyyy-MM-dd}";
-        var (items, rateLimit, _) = await SendAsync<FixtureDto>(requestUri, cancellationToken);
-        return new FixturesResponse(items, rateLimit);
+        var (items, rateLimit, _) = await SendAsync<FixtureItem>(requestUri, cancellationToken);
+        return new FixturesResponse(items.Select(MapFixture).ToList(), rateLimit);
     }
 
     public async Task<EventsResponse> GetFixtureEventsAsync(int fixtureId, CancellationToken cancellationToken = default)
     {
         var requestUri = $"fixtures/events?fixture={fixtureId}";
-        var (items, rateLimit, noContent) = await SendAsync<EventDto>(requestUri, cancellationToken);
-        return new EventsResponse(items, noContent, rateLimit);
+        var (items, rateLimit, noContent) = await SendAsync<EventItem>(requestUri, cancellationToken);
+        return new EventsResponse(items.Select(MapEvent).ToList(), noContent, rateLimit);
     }
+
+    // Wire → provider-neutral mapping. Keeps the vendor JSON shape from leaking past this client.
+    private static IngestFixture MapFixture(FixtureItem item) => new(
+        FixtureId: item.Fixture?.Id ?? 0,
+        KickoffUtc: item.Fixture?.Date ?? default,
+        StatusShort: item.Fixture?.Status?.Short,
+        Season: item.League?.Season ?? 0,
+        Round: item.League?.Round,
+        Home: MapTeam(item.Teams?.Home),
+        Away: MapTeam(item.Teams?.Away),
+        GoalsHome: item.Goals?.Home,
+        GoalsAway: item.Goals?.Away,
+        FulltimeHome: item.Score?.Fulltime?.Home,
+        FulltimeAway: item.Score?.Fulltime?.Away);
+
+    private static IngestEvent MapEvent(EventItem item) => new(
+        Minute: item.Time?.Elapsed,
+        MinuteExtra: item.Time?.Extra,
+        Team: MapTeam(item.Team),
+        PlayerId: item.Player?.Id,
+        PlayerName: item.Player?.Name,
+        Type: item.Type,
+        Detail: item.Detail);
+
+    private static IngestTeamRef? MapTeam(TeamRefWire? team) =>
+        team is null ? null : new IngestTeamRef(team.Id, team.Name, team.Logo);
 
     private async Task<(IReadOnlyList<T> Items, RateLimitSnapshot RateLimit, bool NoContent)> SendAsync<T>(
         string requestUri, CancellationToken cancellationToken)

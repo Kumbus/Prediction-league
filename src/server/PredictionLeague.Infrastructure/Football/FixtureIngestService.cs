@@ -14,6 +14,10 @@ public sealed class FixtureIngestService : IFixtureIngestService
     // known remaining quota drops to/below this rather than tight-retrying.
     private const int MinQuotaBuffer = 1;
 
+    // Same idea against the per-minute cap (10/min free tier): stop issuing event calls when
+    // the minute window is nearly spent rather than tight-retrying into a 429.
+    private const int MinMinuteBuffer = 1;
+
     private readonly IFootballApiClient _apiClient;
     private readonly ITournamentRepository _tournaments;
     private readonly IMatchRepository _matches;
@@ -65,52 +69,53 @@ public sealed class FixtureIngestService : IFixtureIngestService
 
         var apiCallsUsed = 1;
         var quotaRemaining = fixturesResponse.RateLimit.DailyRemaining;
+        var minuteRemaining = fixturesResponse.RateLimit.MinuteRemaining;
         var fixturesUpserted = 0;
         var eventsUpserted = 0;
 
         foreach (var fixture in fixturesResponse.Fixtures)
         {
-            if (fixture.Fixture is null || fixture.Teams?.Home is null || fixture.Teams?.Away is null)
+            if (fixture.FixtureId == 0 || fixture.Home is null || fixture.Away is null)
             {
-                _logger.LogWarning("Skipping fixture with missing core data (id={Id}).", fixture.Fixture?.Id);
+                _logger.LogWarning("Skipping fixture with missing core data (id={Id}).", fixture.FixtureId);
                 continue;
             }
 
-            var status = MapStatus(fixture.Fixture.Status?.Short);
+            var status = MapStatus(fixture.StatusShort);
 
-            var homeTeamId = await ResolveTeamAsync(fixture.Teams.Home, teamCache, cancellationToken);
-            var awayTeamId = await ResolveTeamAsync(fixture.Teams.Away, teamCache, cancellationToken);
+            var homeTeamId = await ResolveTeamAsync(fixture.Home, teamCache, cancellationToken);
+            var awayTeamId = await ResolveTeamAsync(fixture.Away, teamCache, cancellationToken);
 
-            var match = await _matches.GetByExternalFixtureIdAsync(fixture.Fixture.Id, cancellationToken);
+            var match = await _matches.GetByExternalFixtureIdAsync(fixture.FixtureId, cancellationToken);
             var isNew = match is null;
             if (match is null)
             {
                 match = new Match
                 {
                     Id = Guid.NewGuid(),
-                    ExternalFixtureId = fixture.Fixture.Id,
-                    Round = fixture.League?.Round ?? string.Empty
+                    ExternalFixtureId = fixture.FixtureId,
+                    Round = fixture.Round ?? string.Empty
                 };
             }
 
             match.TournamentId = tournament.Id;
-            match.Season = fixture.League?.Season ?? season;
-            match.Round = fixture.League?.Round ?? match.Round;
+            match.Season = fixture.Season != 0 ? fixture.Season : season;
+            match.Round = fixture.Round ?? match.Round;
             match.HomeTeamId = homeTeamId;
             match.AwayTeamId = awayTeamId;
-            match.KickoffUtc = fixture.Fixture.Date;
+            match.KickoffUtc = fixture.KickoffUtc;
             match.Status = status;
 
             // Score source by status: fulltime when finished, running goals otherwise.
             if (status == MatchStatus.Finished)
             {
-                match.HomeScore = fixture.Score?.Fulltime?.Home ?? fixture.Goals?.Home;
-                match.AwayScore = fixture.Score?.Fulltime?.Away ?? fixture.Goals?.Away;
+                match.HomeScore = fixture.FulltimeHome ?? fixture.GoalsHome;
+                match.AwayScore = fixture.FulltimeAway ?? fixture.GoalsAway;
             }
             else
             {
-                match.HomeScore = fixture.Goals?.Home;
-                match.AwayScore = fixture.Goals?.Away;
+                match.HomeScore = fixture.GoalsHome;
+                match.AwayScore = fixture.GoalsAway;
             }
 
             if (isNew)
@@ -121,17 +126,20 @@ public sealed class FixtureIngestService : IFixtureIngestService
             // Events only for finished/in-play fixtures, and only while quota allows.
             if (status is MatchStatus.Finished or MatchStatus.Live)
             {
-                if (quotaRemaining is not null && quotaRemaining <= MinQuotaBuffer)
+                var dailyLow = quotaRemaining is not null && quotaRemaining <= MinQuotaBuffer;
+                var minuteLow = minuteRemaining is not null && minuteRemaining <= MinMinuteBuffer;
+                if (dailyLow || minuteLow)
                 {
                     _logger.LogWarning(
-                        "Quota low (remaining={Remaining}); skipping events for fixture {FixtureId} and onward.",
-                        quotaRemaining, fixture.Fixture.Id);
+                        "Rate limit low (daily={Daily}, minute={Minute}); skipping events for fixture {FixtureId} and onward.",
+                        quotaRemaining, minuteRemaining, fixture.FixtureId);
                 }
                 else
                 {
-                    var eventsResponse = await _apiClient.GetFixtureEventsAsync(fixture.Fixture.Id, cancellationToken);
+                    var eventsResponse = await _apiClient.GetFixtureEventsAsync(fixture.FixtureId, cancellationToken);
                     apiCallsUsed++;
                     quotaRemaining = eventsResponse.RateLimit.DailyRemaining ?? quotaRemaining;
+                    minuteRemaining = eventsResponse.RateLimit.MinuteRemaining ?? minuteRemaining;
 
                     eventsUpserted += await ReplaceEventsAsync(
                         match, eventsResponse.Events, eventTypeIdByCode, teamCache, playerCache, cancellationToken);
@@ -155,7 +163,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
     // ingest. Filters to Goal/Card, skips partial (null type/player) entries.
     private async Task<int> ReplaceEventsAsync(
         Match match,
-        IReadOnlyList<EventDto> events,
+        IReadOnlyList<IngestEvent> events,
         IReadOnlyDictionary<string, int> eventTypeIdByCode,
         Dictionary<int, Guid> teamCache,
         Dictionary<int, Guid> playerCache,
@@ -172,7 +180,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
 
             // Trailing partial array entries (null type/player) cannot satisfy the non-null
             // PlayerId FK — skip; the minimal-create fallback only covers a present id.
-            if (ev.Player?.Id is null)
+            if (ev.PlayerId is null)
                 continue;
 
             var code = MapDetailToCode(ev.Detail);
@@ -184,7 +192,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
                 continue;
             }
 
-            if (ev.Team?.Id is null)
+            if (ev.Team is null)
             {
                 _logger.LogWarning(
                     "Event with no team on fixture {FixtureId}; skipping.", match.ExternalFixtureId);
@@ -192,7 +200,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
             }
 
             var teamId = await ResolveTeamAsync(ev.Team, teamCache, cancellationToken);
-            var playerId = await ResolvePlayerAsync(ev.Player, teamCache, playerCache, cancellationToken);
+            var playerId = await ResolvePlayerAsync(ev.PlayerId.Value, ev.PlayerName, playerCache, cancellationToken);
 
             match.Events.Add(new MatchEvent
             {
@@ -201,8 +209,8 @@ public sealed class FixtureIngestService : IFixtureIngestService
                 MatchEventTypeId = eventTypeId,
                 PlayerId = playerId,
                 TeamId = teamId,
-                Minute = ev.Time?.Elapsed ?? 0,
-                MinuteExtra = ev.Time?.Extra
+                Minute = ev.Minute ?? 0,
+                MinuteExtra = ev.MinuteExtra
             });
             added++;
         }
@@ -210,7 +218,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
         return added;
     }
 
-    private async Task<Guid> ResolveTeamAsync(TeamRefDto team, Dictionary<int, Guid> cache, CancellationToken cancellationToken)
+    private async Task<Guid> ResolveTeamAsync(IngestTeamRef team, Dictionary<int, Guid> cache, CancellationToken cancellationToken)
     {
         if (cache.TryGetValue(team.Id, out var cached))
             return cached;
@@ -227,7 +235,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
             Id = Guid.NewGuid(),
             ExternalTeamId = team.Id,
             Name = team.Name ?? $"Team {team.Id}",
-            LogoUrl = team.Logo
+            LogoUrl = team.LogoUrl
         };
         await _teams.AddAsync(created, cancellationToken);
         cache[team.Id] = created.Id;
@@ -237,9 +245,8 @@ public sealed class FixtureIngestService : IFixtureIngestService
     // Resolve by external id; minimal-create fallback so a missing seed never drops an
     // event. Does not attempt club/national classification.
     private async Task<Guid> ResolvePlayerAsync(
-        PlayerRefDto player, Dictionary<int, Guid> teamCache, Dictionary<int, Guid> playerCache, CancellationToken cancellationToken)
+        int externalId, string? playerName, Dictionary<int, Guid> playerCache, CancellationToken cancellationToken)
     {
-        var externalId = player.Id!.Value;
         if (playerCache.TryGetValue(externalId, out var cached))
             return cached;
 
@@ -251,13 +258,13 @@ public sealed class FixtureIngestService : IFixtureIngestService
         }
 
         _logger.LogWarning(
-            "Player {ExternalId} ('{Name}') not seeded; creating minimal record.", externalId, player.Name);
+            "Player {ExternalId} ('{Name}') not seeded; creating minimal record.", externalId, playerName);
 
         var created = new Player
         {
             Id = Guid.NewGuid(),
             ExternalPlayerId = externalId,
-            Name = player.Name ?? $"Player {externalId}"
+            Name = playerName ?? $"Player {externalId}"
         };
         await _players.AddAsync(created, cancellationToken);
         playerCache[externalId] = created.Id;
@@ -267,7 +274,9 @@ public sealed class FixtureIngestService : IFixtureIngestService
     private static MatchStatus MapStatus(string? statusShort) => statusShort switch
     {
         "FT" or "AET" or "PEN" => MatchStatus.Finished,
-        "NS" or "TBD" => MatchStatus.Scheduled,
+        // Not-yet-played and non-played terminals: never spend an events call on them.
+        "NS" or "TBD" or "PST" or "CANC" or "ABD" or "AWD" or "WO" or "SUSP" or "INT" => MatchStatus.Scheduled,
+        // True in-play only (1H/HT/2H/ET/BT/P/LIVE).
         _ => MatchStatus.Live
     };
 

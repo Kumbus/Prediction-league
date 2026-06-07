@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PredictionLeague.Application.Abstractions.Football;
+using PredictionLeague.Infrastructure.Football;
 
 namespace PredictionLeague.Api.Controllers;
 
@@ -31,7 +32,20 @@ public class IngestController : ControllerBase
         if (!_environment.IsDevelopment())
             return NotFound();
 
-        var result = await _ingest.IngestTournamentAsync(tournamentId, season, date, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _ingest.IngestTournamentAsync(tournamentId, season, date, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Tournament missing or misconfigured (no ExternalApiId) — a caller error, not a 500.
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (FootballApiException ex)
+        {
+            // Upstream API-Football failure — surface as a bad-gateway, not an opaque 500.
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status502BadGateway);
+        }
     }
 }

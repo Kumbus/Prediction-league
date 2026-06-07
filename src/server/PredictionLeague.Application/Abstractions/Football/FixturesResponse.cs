@@ -1,49 +1,23 @@
-using System.Text.Json.Serialization;
-
 namespace PredictionLeague.Application.Abstractions.Football;
 
-// Typed result of GET /fixtures: the response items plus the quota snapshot.
-public sealed record FixturesResponse(IReadOnlyList<FixtureDto> Fixtures, RateLimitSnapshot RateLimit);
+// Provider-neutral result of a fixtures fetch: items mapped off the vendor wire shape plus
+// the quota snapshot. The API-Football JSON DTOs stay internal to Infrastructure so this
+// abstraction does not leak the vendor's response shape into Application.
+public sealed record FixturesResponse(IReadOnlyList<IngestFixture> Fixtures, RateLimitSnapshot RateLimit);
 
-// One /fixtures response item. Nullable wherever the API can omit a value.
-public sealed record FixtureDto(
-    [property: JsonPropertyName("fixture")] FixtureInfoDto? Fixture,
-    [property: JsonPropertyName("league")] FixtureLeagueDto? League,
-    [property: JsonPropertyName("teams")] FixtureTeamsDto? Teams,
-    [property: JsonPropertyName("goals")] GoalsDto? Goals,
-    [property: JsonPropertyName("score")] ScoreDto? Score);
+// One fixture, flattened to what ingest needs. Nullable wherever the source can omit a value.
+public sealed record IngestFixture(
+    int FixtureId,
+    DateTimeOffset KickoffUtc,
+    string? StatusShort,
+    int Season,
+    string? Round,
+    IngestTeamRef? Home,
+    IngestTeamRef? Away,
+    int? GoalsHome,
+    int? GoalsAway,
+    int? FulltimeHome,
+    int? FulltimeAway);
 
-public sealed record FixtureInfoDto(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("date")] DateTimeOffset Date,
-    [property: JsonPropertyName("status")] FixtureStatusDto? Status);
-
-public sealed record FixtureStatusDto(
-    [property: JsonPropertyName("short")] string? Short,
-    [property: JsonPropertyName("elapsed")] int? Elapsed,
-    [property: JsonPropertyName("extra")] int? Extra);
-
-public sealed record FixtureLeagueDto(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("season")] int Season,
-    [property: JsonPropertyName("round")] string? Round);
-
-public sealed record FixtureTeamsDto(
-    [property: JsonPropertyName("home")] TeamRefDto? Home,
-    [property: JsonPropertyName("away")] TeamRefDto? Away);
-
-public sealed record TeamRefDto(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("name")] string? Name,
-    [property: JsonPropertyName("logo")] string? Logo);
-
-public sealed record GoalsDto(
-    [property: JsonPropertyName("home")] int? Home,
-    [property: JsonPropertyName("away")] int? Away);
-
-public sealed record ScoreDto(
-    [property: JsonPropertyName("fulltime")] ScorePairDto? Fulltime);
-
-public sealed record ScorePairDto(
-    [property: JsonPropertyName("home")] int? Home,
-    [property: JsonPropertyName("away")] int? Away);
+// A team reference carried on a fixture or an event.
+public sealed record IngestTeamRef(int Id, string? Name, string? LogoUrl);
