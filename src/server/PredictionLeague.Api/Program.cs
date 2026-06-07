@@ -16,6 +16,18 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Football ingest: typed API-Football client + ingest service (shared with the Functions host).
 builder.Services.AddFootballIngest(builder.Configuration);
 
+// Authentication: Identity cookie + Google external login + AdminOnly policy.
+builder.Services.AddAuthenticationAndIdentity(builder.Configuration);
+
+// CORS for the split-stack SPA — credentials (cookie) require explicit origins, not AllowAnyOrigin.
+const string SpaCorsPolicy = "SpaCors";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(o => o.AddPolicy(SpaCorsPolicy, p =>
+    p.WithOrigins(allowedOrigins)
+        .AllowCredentials()
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 // DB connectivity probe — proves the persistence stack end-to-end at /health/db.
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
@@ -46,6 +58,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Pipeline order is load-bearing: CORS → Authentication → Authorization → MapControllers.
+app.UseCors(SpaCorsPolicy);
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

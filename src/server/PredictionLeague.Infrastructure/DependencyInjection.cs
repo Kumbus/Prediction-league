@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +10,7 @@ using Polly;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Infrastructure.Football;
+using PredictionLeague.Infrastructure.Identity;
 using PredictionLeague.Infrastructure.Persistence;
 using PredictionLeague.Infrastructure.Persistence.Repositories;
 
@@ -32,6 +36,62 @@ public static class DependencyInjection
         services.AddScoped<ITeamRepository, TeamRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IMatchEventTypeRepository, MatchEventTypeRepository>();
+
+        return services;
+    }
+
+    // One call the host uses to wire authentication: ASP.NET Core Identity (cookie schemes +
+    // SignInManager/UserManager over AppDbContext), the Google external handler, the admin
+    // claims factory, and the AdminOnly authorization policy. Mirrors AddInfrastructure /
+    // AddFootballIngest so Program.cs stays thin. CORS is a host concern and lives in Program.cs.
+    public static IServiceCollection AddAuthenticationAndIdentity(this IServiceCollection services, IConfiguration config)
+    {
+        var googleSection = config.GetSection(GoogleAuthOptions.SectionName);
+        services.Configure<GoogleAuthOptions>(googleSection);
+        var googleOptions = googleSection.Get<GoogleAuthOptions>() ?? new GoogleAuthOptions();
+
+        services
+            .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
+
+        // Emit the admin claim from ApplicationUser.IsGlobalAdmin (replaces Identity's default
+        // factory — last registration wins when Identity resolves the service).
+        services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AppUserClaimsPrincipalFactory>();
+
+        // AddIdentity already set the default schemes + application cookie. Register Google only
+        // when credentials are present: Google is a remote (request-handler) scheme that the
+        // authentication middleware initializes on every request, and OAuthOptions.Validate()
+        // throws on an empty ClientId — which would 500 every endpoint. With no creds (default dev
+        // state pre-Phase-3) the scheme stays unregistered and the rest of the API works; Google
+        // login activates once user-secrets supply the id/secret.
+        if (!string.IsNullOrWhiteSpace(googleOptions.ClientId)
+            && !string.IsNullOrWhiteSpace(googleOptions.ClientSecret))
+        {
+            services
+                .AddAuthentication()
+                .AddGoogle(o =>
+                {
+                    o.ClientId = googleOptions.ClientId;
+                    o.ClientSecret = googleOptions.ClientSecret;
+                    o.SaveTokens = true;
+                });
+        }
+
+        // Cross-origin SPA cookie: SameSite=None + Secure so the cookie flows from the Vite origin.
+        // Requires HTTPS (use the https launch profile locally). No OnRedirectToLogin override —
+        // .NET 10 returns 401/403 for API endpoints instead of redirecting.
+        services.ConfigureApplicationCookie(o =>
+        {
+            o.Cookie.SameSite = SameSiteMode.None;
+            o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            o.ExpireTimeSpan = TimeSpan.FromDays(7);
+            o.SlidingExpiration = true;
+        });
+
+        services.AddAuthorization(o =>
+            o.AddPolicy(AuthorizationPolicies.AdminOnly, p =>
+                p.RequireClaim(AuthorizationPolicies.AdminClaimType)));
 
         return services;
     }
