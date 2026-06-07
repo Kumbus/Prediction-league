@@ -315,12 +315,12 @@ Adding auth requires **no schema migration** — the `AspNet*` tables (including
 
 #### Automated
 
-- [x] 3.1 Solution builds
+- [x] 3.1 Solution builds — e55ee76
 
 #### Manual
 
-- [x] 3.2 `login/google` redirects to Google consent
-- [x] 3.3 Consent creates `AspNetUsers` + `AspNetUserLogins` rows, issues cookie, redirects to SPA return URL
-- [x] 3.4 Second sign-in reuses the existing user (no duplicate)
-- [x] 3.5 `me` after Google sign-in returns the provisioned user
-- [x] 3.6 Invalid/foreign `returnUrl` is rejected (no open redirect)
+- [x] 3.2 `login/google` redirects to Google consent — e55ee76
+- [x] 3.3 Consent creates `AspNetUsers` + `AspNetUserLogins` rows, issues cookie, redirects to SPA return URL — e55ee76
+- [x] 3.4 Second sign-in reuses the existing user (no duplicate) — e55ee76
+- [x] 3.5 `me` after Google sign-in returns the provisioned user — e55ee76
+- [x] 3.6 Invalid/foreign `returnUrl` is rejected (no open redirect) — e55ee76
