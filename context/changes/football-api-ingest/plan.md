@@ -644,18 +644,18 @@ auto-migrates on startup). Prod stays forward-only + human-gated when F-04 lands
 
 #### Automated
 
-- [x] 2.1 Solution builds
+- [x] 2.1 Solution builds — 0efbdbd
 
 #### Manual
 
-- [x] 2.2 Repos resolve from DI without missing-registration errors
+- [x] 2.2 Repos resolve from DI without missing-registration errors — 0efbdbd
 
 ### Phase 3: Typed HTTP Client + DTOs + Config
 
 #### Automated
 
-- [ ] 3.1 Solution builds
-- [ ] 3.2 `Microsoft.Extensions.Http.Polly` restores
+- [x] 3.1 Solution builds
+- [x] 3.2 `Microsoft.Extensions.Http.Polly` restores (adapted → `Microsoft.Extensions.Http.Resilience` v10.6.0 / Polly v8)
 
 #### Manual
 
