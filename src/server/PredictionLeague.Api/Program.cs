@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PredictionLeague.Api.Configuration;
 using PredictionLeague.Infrastructure;
 using PredictionLeague.Infrastructure.Persistence;
 
@@ -15,6 +16,20 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Football ingest: typed API-Football client + ingest service (shared with the Functions host).
 builder.Services.AddFootballIngest(builder.Configuration);
+
+// Authentication: Identity cookie + Google external login + AdminOnly policy.
+builder.Services.AddAuthenticationAndIdentity(builder.Configuration);
+
+// CORS for the split-stack SPA — credentials (cookie) require explicit origins, not AllowAnyOrigin.
+// Bind the SPA origins once; the open-redirect guard in AuthController reads the same options.
+const string SpaCorsPolicy = "SpaCors";
+builder.Services.Configure<SpaCorsOptions>(builder.Configuration.GetSection(SpaCorsOptions.SectionName));
+var corsOptions = builder.Configuration.GetSection(SpaCorsOptions.SectionName).Get<SpaCorsOptions>() ?? new SpaCorsOptions();
+builder.Services.AddCors(o => o.AddPolicy(SpaCorsPolicy, p =>
+    p.WithOrigins(corsOptions.AllowedOrigins)
+        .AllowCredentials()
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 
 // DB connectivity probe — proves the persistence stack end-to-end at /health/db.
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
@@ -46,6 +61,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Pipeline order is load-bearing: CORS → Authentication → Authorization → MapControllers.
+app.UseCors(SpaCorsPolicy);
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

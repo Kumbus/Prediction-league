@@ -1,13 +1,17 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Infrastructure.Football;
+using PredictionLeague.Infrastructure.Identity;
 
 namespace PredictionLeague.Api.Controllers;
 
 // Guarded on-demand ingest for verifying F-03 before S-02 exists; S-02 later reuses the
-// service. Gated to Development only — real auth is F-02. Not a public route in prod.
+// service. Now gated by the real AdminOnly policy (F-02); the Development 404 guard below
+// stays as defense-in-depth so the route is unreachable in a deployed config.
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = AuthorizationPolicies.AdminOnly)]
 public class IngestController : ControllerBase
 {
     private readonly IFixtureIngestService _ingest;
