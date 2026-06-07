@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PredictionLeague.Api.Configuration;
 using PredictionLeague.Infrastructure;
 using PredictionLeague.Infrastructure.Persistence;
 
@@ -20,10 +21,12 @@ builder.Services.AddFootballIngest(builder.Configuration);
 builder.Services.AddAuthenticationAndIdentity(builder.Configuration);
 
 // CORS for the split-stack SPA — credentials (cookie) require explicit origins, not AllowAnyOrigin.
+// Bind the SPA origins once; the open-redirect guard in AuthController reads the same options.
 const string SpaCorsPolicy = "SpaCors";
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.Configure<SpaCorsOptions>(builder.Configuration.GetSection(SpaCorsOptions.SectionName));
+var corsOptions = builder.Configuration.GetSection(SpaCorsOptions.SectionName).Get<SpaCorsOptions>() ?? new SpaCorsOptions();
 builder.Services.AddCors(o => o.AddPolicy(SpaCorsPolicy, p =>
-    p.WithOrigins(allowedOrigins)
+    p.WithOrigins(corsOptions.AllowedOrigins)
         .AllowCredentials()
         .AllowAnyHeader()
         .AllowAnyMethod()));

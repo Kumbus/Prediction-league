@@ -1,8 +1,11 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using PredictionLeague.Api.Configuration;
 using PredictionLeague.Infrastructure.Identity;
 
 namespace PredictionLeague.Api.Controllers;
@@ -16,16 +19,19 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IConfiguration _config;
+    private readonly IAuthenticationSchemeProvider _schemeProvider;
+    private readonly SpaCorsOptions _corsOptions;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IConfiguration config)
+        IAuthenticationSchemeProvider schemeProvider,
+        IOptions<SpaCorsOptions> corsOptions)
     {
         _userManager = userManager;
         _signInManager = signInManager;
-        _config = config;
+        _schemeProvider = schemeProvider;
+        _corsOptions = corsOptions.Value;
     }
 
     public record RegisterRequest(string Email, string Password, string DisplayName);
@@ -98,8 +104,14 @@ public class AuthController : ControllerBase
     // GET api/auth/login/google?returnUrl= — start the server-side Google redirect flow.
     // The handler returns to ExternalCallback (which carries returnUrl through) after consent.
     [HttpGet("login/google")]
-    public IActionResult LoginGoogle([FromQuery] string? returnUrl)
+    public async Task<IActionResult> LoginGoogle([FromQuery] string? returnUrl)
     {
+        // The Google scheme is registered only when credentials are configured (see
+        // AddAuthenticationAndIdentity). Without them, fail cleanly instead of 500-ing on a
+        // Challenge against an unknown scheme.
+        if (await _schemeProvider.GetSchemeAsync(GoogleDefaults.AuthenticationScheme) is null)
+            return Problem(detail: "Google sign-in is not configured.", statusCode: StatusCodes.Status501NotImplemented);
+
         var redirectUri = Url.Action(nameof(ExternalCallback), "Auth", new { returnUrl });
         var properties = _signInManager.ConfigureExternalAuthenticationProperties(
             GoogleDefaults.AuthenticationScheme, redirectUri);
@@ -129,19 +141,23 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(email))
             return Redirect(AppendError(target, "no_email"));
 
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user is null)
+        // A local (or otherwise unlinked) account already owns this email — do NOT auto-link
+        // Google to it. The local side has no email-ownership proof (no confirmation flow yet),
+        // so auto-linking by email is an account-takeover vector. Linking must instead be
+        // initiated from an already-authenticated session (future work).
+        var existing = await _userManager.FindByEmailAsync(email);
+        if (existing is not null)
+            return Redirect(AppendError(target, "account_exists"));
+
+        var user = new ApplicationUser
         {
-            user = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email
-            };
-            var created = await _userManager.CreateAsync(user);
-            if (!created.Succeeded)
-                return Redirect(AppendError(target, "provisioning_failed"));
-        }
+            UserName = email,
+            Email = email,
+            DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email
+        };
+        var created = await _userManager.CreateAsync(user);
+        if (!created.Succeeded)
+            return Redirect(AppendError(target, "provisioning_failed"));
 
         var linked = await _userManager.AddLoginAsync(user, info);
         if (!linked.Succeeded)
@@ -155,7 +171,7 @@ public class AuthController : ControllerBase
     // origin (Cors:AllowedOrigins); anything else falls back to the first configured origin.
     private string ResolveReturnUrl(string? returnUrl)
     {
-        var allowed = _config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        var allowed = _corsOptions.AllowedOrigins;
         var fallback = allowed.FirstOrDefault() ?? "/";
 
         if (string.IsNullOrWhiteSpace(returnUrl))
