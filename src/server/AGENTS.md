@@ -19,7 +19,8 @@ No tests exist yet. Don't claim any pass.
 ## Traps
 
 - **Persistence landed (F-01).** EF Core (SQL Server) + ASP.NET Core Identity (Guid keys) is wired via the layered `Domain`/`Application`/`Infrastructure`/`Api` projects. League CRUD goes through repositories (`Application/Abstractions/Persistence`, `Infrastructure/Persistence/Repositories`) — the old `static List<League>` controller is gone. Dev auto-migrates on startup; prod migrations are forward-only + human-gated. `GET /health/db` proves DB connectivity.
-- **Auth declared, not wired.** `Program.cs` calls `UseAuthorization()` but nothing configures it. Identity *schema* exists (`AspNet*` tables); OAuth sign-in is F-02.
+- **Auth wired (F-02).** Cookie-based ASP.NET Core Identity is live via `AddAuthenticationAndIdentity` (`Infrastructure/DependencyInjection.cs`); pipeline is CORS → Authentication → Authorization in `Program.cs`. Two sign-in paths share the cookie: local email/password and Google external login, both under `AuthController` (`api/auth/*`). Global admin is the `AdminOnly` policy (claim from `ApplicationUser.IsGlobalAdmin`); organizer/member stay per-league via `LeagueMembership`. Anonymous calls to `[Authorize]` routes get 401/403 (no login redirect — .NET 10 API cookie behavior).
+  - **Google secrets** are not committed. Supply via user-secrets (dev): `dotnet user-secrets set "Authentication:Google:ClientId" "<id>"` and `... "Authentication:Google:ClientSecret" "<secret>"`. The Google scheme registers only when both are present — empty config boots fine, Google login just stays off. Google Cloud OAuth client (Web) authorized redirect URI: `https://localhost:7182/signin-google`. Run the **https** launch profile so the `Secure` cookie is set.
 
 ## Domain
 

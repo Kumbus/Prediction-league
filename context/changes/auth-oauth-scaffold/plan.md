@@ -302,25 +302,25 @@ Adding auth requires **no schema migration** — the `AspNet*` tables (including
 
 #### Automated
 
-- [x] 2.1 Solution builds
+- [x] 2.1 Solution builds — cbce498
 
 #### Manual
 
-- [x] 2.2 `register` creates an `AspNetUsers` row
-- [x] 2.3 `login` then `me` returns the user; `me` returns 401 before login
-- [x] 2.4 `logout` clears session — subsequent `me` returns 401
-- [x] 2.5 Non-admin gets 403 on the ingest endpoint; admin (flag flipped) gets through
+- [x] 2.2 `register` creates an `AspNetUsers` row — cbce498
+- [x] 2.3 `login` then `me` returns the user; `me` returns 401 before login — cbce498
+- [x] 2.4 `logout` clears session — subsequent `me` returns 401 — cbce498
+- [x] 2.5 Non-admin gets 403 on the ingest endpoint; admin (flag flipped) gets through — cbce498
 
 ### Phase 3: Google external login + config
 
 #### Automated
 
-- [ ] 3.1 Solution builds
+- [x] 3.1 Solution builds
 
 #### Manual
 
-- [ ] 3.2 `login/google` redirects to Google consent
-- [ ] 3.3 Consent creates `AspNetUsers` + `AspNetUserLogins` rows, issues cookie, redirects to SPA return URL
-- [ ] 3.4 Second sign-in reuses the existing user (no duplicate)
-- [ ] 3.5 `me` after Google sign-in returns the provisioned user
-- [ ] 3.6 Invalid/foreign `returnUrl` is rejected (no open redirect)
+- [x] 3.2 `login/google` redirects to Google consent
+- [x] 3.3 Consent creates `AspNetUsers` + `AspNetUserLogins` rows, issues cookie, redirects to SPA return URL
+- [x] 3.4 Second sign-in reuses the existing user (no duplicate)
+- [x] 3.5 `me` after Google sign-in returns the provisioned user
+- [x] 3.6 Invalid/foreign `returnUrl` is rejected (no open redirect)
