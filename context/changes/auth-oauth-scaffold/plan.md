@@ -289,27 +289,27 @@ Adding auth requires **no schema migration** — the `AspNet*` tables (including
 
 #### Automated
 
-- [x] 1.1 Solution builds (`dotnet build prediction-league.slnx`)
-- [x] 1.2 No unintended pending model changes (or deliberate DisplayName migration committed)
-- [x] 1.3 App starts and `GET /health/db` returns healthy
+- [x] 1.1 Solution builds (`dotnet build prediction-league.slnx`) — 3722559
+- [x] 1.2 No unintended pending model changes (or deliberate DisplayName migration committed) — 3722559
+- [x] 1.3 App starts and `GET /health/db` returns healthy — 3722559
 
 #### Manual
 
-- [x] 1.4 Anonymous request to a protected route returns 401 (not an HTML redirect)
-- [x] 1.5 App boots with empty Google config without throwing
+- [x] 1.4 Anonymous request to a protected route returns 401 (not an HTML redirect) — 3722559
+- [x] 1.5 App boots with empty Google config without throwing — 3722559
 
 ### Phase 2: Local accounts + auth endpoints
 
 #### Automated
 
-- [ ] 2.1 Solution builds
+- [x] 2.1 Solution builds
 
 #### Manual
 
-- [ ] 2.2 `register` creates an `AspNetUsers` row
-- [ ] 2.3 `login` then `me` returns the user; `me` returns 401 before login
-- [ ] 2.4 `logout` clears session — subsequent `me` returns 401
-- [ ] 2.5 Non-admin gets 403 on the ingest endpoint; admin (flag flipped) gets through
+- [x] 2.2 `register` creates an `AspNetUsers` row
+- [x] 2.3 `login` then `me` returns the user; `me` returns 401 before login
+- [x] 2.4 `logout` clears session — subsequent `me` returns 401
+- [x] 2.5 Non-admin gets 403 on the ingest endpoint; admin (flag flipped) gets through
 
 ### Phase 3: Google external login + config
 
