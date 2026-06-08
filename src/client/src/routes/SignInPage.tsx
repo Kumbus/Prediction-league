@@ -12,7 +12,16 @@ export function SignInPage() {
   const [params] = useSearchParams()
   const externalError = messageForExternalError(params.get("error"))
 
-  if (status === "loading") return null
+  if (status === "loading") {
+    return (
+      <main className="flex min-h-svh items-center justify-center p-6">
+        <div
+          aria-label="Loading"
+          className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary"
+        />
+      </main>
+    )
+  }
   if (status === "authenticated") return <Navigate to="/app" replace />
 
   return (

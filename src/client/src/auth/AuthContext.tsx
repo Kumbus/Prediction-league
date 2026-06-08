@@ -8,18 +8,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", user: null })
   const probing = useRef(false)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     if (probing.current) return
     probing.current = true
     try {
-      const user = await apiFetch<AuthUser>("/api/auth/me")
+      const user = await apiFetch<AuthUser>("/api/auth/me", { signal })
       setState({ status: "authenticated", user })
     } catch (err) {
+      if (signal?.aborted) return
       if (err instanceof ApiError && err.status === 401) {
         setState({ status: "anonymous", user: null })
       } else {
         console.error("Auth probe failed", err)
-        setState({ status: "anonymous", user: null })
+        setState((prev) => ({ status: "error", user: prev.user }))
       }
     } finally {
       probing.current = false
@@ -36,8 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    const controller = new AbortController()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh()
+    void refresh(controller.signal)
+    return () => controller.abort()
   }, [refresh])
 
   const value = useMemo<AuthContextValue>(

@@ -2,7 +2,7 @@ import { createContext } from "react"
 import type { AuthState } from "./types"
 
 export interface AuthContextValue extends AuthState {
-  refresh: () => Promise<void>
+  refresh: (signal?: AbortSignal) => Promise<void>
   signOut: () => Promise<void>
 }
 

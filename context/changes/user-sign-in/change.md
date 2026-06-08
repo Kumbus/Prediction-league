@@ -1,7 +1,7 @@
 ---
 change_id: user-sign-in
 title: User can sign in via OAuth (S-01)
-status: implemented
+status: impl_reviewed
 created: 2026-06-08
 updated: 2026-06-08
 

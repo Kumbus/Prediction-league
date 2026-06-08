@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { apiBaseUrl } from "@/lib/api"
 
 function GoogleLogo() {
   return (
@@ -31,9 +32,7 @@ function GoogleLogo() {
 export function GoogleSignInButton() {
   const onClick = () => {
     const returnUrl = encodeURIComponent(`${window.location.origin}/sign-in`)
-    window.location.assign(
-      `${import.meta.env.VITE_API_BASE_URL}/api/auth/login/google?returnUrl=${returnUrl}`,
-    )
+    window.location.assign(`${apiBaseUrl}/api/auth/login/google?returnUrl=${returnUrl}`)
   }
 
   return (

@@ -5,7 +5,7 @@ export interface AuthUser {
   isGlobalAdmin: boolean
 }
 
-export type AuthStatus = "loading" | "anonymous" | "authenticated"
+export type AuthStatus = "loading" | "anonymous" | "authenticated" | "error"
 
 export interface AuthState {
   status: AuthStatus

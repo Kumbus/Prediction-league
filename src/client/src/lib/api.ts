@@ -17,6 +17,11 @@ export class ApiError extends Error {
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
+if (!BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is not set. Configure it in src/client/.env.development.")
+}
+
+export const apiBaseUrl: string = BASE_URL
 
 export interface ApiFetchInit extends Omit<RequestInit, "body"> {
   body?: RequestInit["body"] | Record<string, unknown> | unknown[]
@@ -67,6 +72,10 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   }
 
   const text = await response.text()
-  if (!text) return undefined as T
-  return JSON.parse(text) as T
+  if (!text.trim()) return undefined as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new ApiError(response.status, "Unexpected non-JSON response")
+  }
 }

@@ -37,7 +37,8 @@ export function LoginForm() {
       await apiFetch<void>("/api/auth/login", { method: "POST", body: values })
       await refresh()
       const from = (location.state as LocationState | null)?.from?.pathname
-      navigate(from ?? "/app", { replace: true })
+      const safeFrom = from && from.startsWith("/") && !from.startsWith("//") ? from : "/app"
+      navigate(safeFrom, { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setFormError("Invalid email or password.")
