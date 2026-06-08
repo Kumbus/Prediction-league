@@ -6,7 +6,7 @@ import { HowItWorks } from "@/components/landing/HowItWorks"
 import { Navbar } from "@/components/landing/Navbar"
 import { StatsBar } from "@/components/landing/StatsBar"
 
-function App() {
+export function LandingPage() {
   return (
     <div className="flex min-h-svh flex-col">
       <Navbar />
@@ -19,5 +19,3 @@ function App() {
     </div>
   )
 }
-
-export default App

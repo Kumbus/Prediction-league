@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+import { useAuth } from "@/auth/useAuth"
 import { Button } from "@/components/ui/button"
 
 const links = [
@@ -6,6 +8,9 @@ const links = [
 ]
 
 export function Navbar() {
+  const { status } = useAuth()
+  const isAuthenticated = status === "authenticated"
+
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-[rgba(10,31,18,0.95)] px-8 backdrop-blur-md">
       <span className="text-lg font-bold tracking-tight text-white">
@@ -22,7 +27,9 @@ export function Navbar() {
           </a>
         ))}
         <Button asChild variant="outline" size="sm">
-          <a href="#join">Join League</a>
+          <Link to={isAuthenticated ? "/app" : "/sign-in"}>
+            {isAuthenticated ? "Open app" : "Sign in"}
+          </Link>
         </Button>
       </nav>
     </header>
