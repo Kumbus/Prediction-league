@@ -1,7 +1,7 @@
 ---
 change_id: walking-skeleton-deploy
 title: Walking-skeleton Azure deploy — layered API + Azure SQL, first prod migration
-status: implemented
+status: impl_reviewed
 created: 2026-06-07
 updated: 2026-06-08
 
@@ -106,7 +106,7 @@ Three commits to land a green workflow on `main`:
 | SQL firewall rules         | `AllowAzureServices` (0.0.0.0/0.0.0.0); transient `ci-<run-id>` rules created/destroyed by the migrate job                                                                                                              |
 | Static Web App (SPA)       | `prediction-league-web` — `https://thankful-desert-02de6f703.7.azurestaticapps.net` (existing from 2026-05-23 deploy)                                                                                                  |
 | Service principal (CI)     | `gh-actions-walking-skeleton` (rg-scoped Contributor), JSON creds in `AZURE_CREDENTIALS` GH secret                                                                                                                       |
-| GH Actions secrets         | `AZURE_CREDENTIALS`, `AZURE_SQL_CONNECTION`, `SQL_ADMIN_PASSWORD`, `AZURE_API_PUBLISH_PROFILE` (kept though unused after switching to SP auth), `AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_DESERT_02DE6F703` (pre-existing) |
+| GH Actions secrets         | `AZURE_CREDENTIALS`, `AZURE_SQL_CONNECTION`, `SQL_ADMIN_PASSWORD`, `AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_DESERT_02DE6F703` (pre-existing). `AZURE_API_PUBLISH_PROFILE` deleted 2026-06-08 post-impl-review — dead after SP-auth switch in `ee5dbd3`. |
 | Deploy workflow            | `.github/workflows/deploy-backend.yml` — triggers on `push` to `main` with `src/server/**` paths, and `workflow_dispatch`                                                                                                |
 
 ## Deviation note links

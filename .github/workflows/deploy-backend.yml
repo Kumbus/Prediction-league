@@ -18,6 +18,13 @@ on:
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
+# Serialize runs against this app+DB. cancel-in-progress:false because cancelling
+# mid-migrate would strand the transient ci-<run-id> SQL firewall rule (cleanup
+# runs only on natural job end via always()).
+concurrency:
+  group: deploy-backend-main
+  cancel-in-progress: false
+
 env:
   DOTNET_VERSION: '10.0.x'
   AZURE_RG: rg-prediction-league
@@ -34,6 +41,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +98,7 @@ jobs:
   migrate:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Download migration script
         uses: actions/download-artifact@v4
@@ -138,6 +147,7 @@ jobs:
   deploy-api:
     needs: [build, migrate]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Download API artifact
         uses: actions/download-artifact@v4
@@ -170,6 +180,7 @@ jobs:
   deploy-func:
     needs: [build, migrate]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Download Functions artifact
         uses: actions/download-artifact@v4
