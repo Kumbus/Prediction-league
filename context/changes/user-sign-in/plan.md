@@ -355,30 +355,30 @@ No data migration. No backend code changes expected unless `Cors:AllowedOrigins`
 
 #### Automated
 
-- [x] 1.1 Build passes (`npm run build`)
-- [x] 1.2 Lint passes (`npm run lint`)
-- [x] 1.3 Dev server boots on `https://localhost:5173`
+- [x] 1.1 Build passes (`npm run build`) — b74ea0c
+- [x] 1.2 Lint passes (`npm run lint`) — b74ea0c
+- [x] 1.3 Dev server boots on `https://localhost:5173` — b74ea0c
 
 #### Manual
 
-- [x] 1.4 `https://localhost:5173/` shows the landing page (cert warning accepted once)
-- [x] 1.5 `/app` while anonymous redirects to `/sign-in`
-- [x] 1.6 DevTools shows `GET /api/auth/me` returning 401 with no loop or error
+- [x] 1.4 `https://localhost:5173/` shows the landing page (cert warning accepted once) — b74ea0c
+- [x] 1.5 `/app` while anonymous redirects to `/sign-in` — b74ea0c
+- [x] 1.6 DevTools shows `GET /api/auth/me` returning 401 with no loop or error — b74ea0c
 
 ### Phase 2: Local sign-in surface
 
 #### Automated
 
-- [ ] 2.1 Build passes
-- [ ] 2.2 Lint passes
+- [x] 2.1 Build passes
+- [x] 2.2 Lint passes
 
 #### Manual
 
-- [ ] 2.3 Register a fresh user → navigates to `/app`; reload stays signed in
-- [ ] 2.4 Login with bad password shows inline "Invalid email or password."
-- [ ] 2.5 Register with weak password shows server validation inline
-- [ ] 2.6 Sign out returns to `/`; `/app` is redirect-protected again
-- [ ] 2.7 Navbar CTA reads "Open app" when signed in, "Sign in" when anonymous
+- [x] 2.3 Register a fresh user → navigates to `/app`; reload stays signed in
+- [x] 2.4 Login with bad password shows inline "Invalid email or password."
+- [x] 2.5 Register with weak password shows server validation inline
+- [x] 2.6 Sign out returns to `/`; `/app` is redirect-protected again
+- [x] 2.7 Navbar CTA reads "Open app" when signed in, "Sign in" when anonymous
 
 ### Phase 3: Google round-trip + error UX + Playwright smoke
 

@@ -18,14 +18,29 @@ export class ApiError extends Error {
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers)
-  let body = init.body
+export interface ApiFetchInit extends Omit<RequestInit, "body"> {
+  body?: RequestInit["body"] | Record<string, unknown> | unknown[]
+}
 
-  if (body !== undefined && body !== null && !(body instanceof FormData) && typeof body === "object") {
-    body = JSON.stringify(body)
-    if (!headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json")
+export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
+  const headers = new Headers(init.headers)
+  let body: BodyInit | null | undefined = undefined
+
+  if (init.body !== undefined && init.body !== null) {
+    if (
+      typeof init.body === "string" ||
+      init.body instanceof FormData ||
+      init.body instanceof Blob ||
+      init.body instanceof ArrayBuffer ||
+      init.body instanceof URLSearchParams ||
+      init.body instanceof ReadableStream
+    ) {
+      body = init.body as BodyInit
+    } else {
+      body = JSON.stringify(init.body)
+      if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json")
+      }
     }
   }
 
