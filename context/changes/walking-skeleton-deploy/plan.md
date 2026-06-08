@@ -360,29 +360,29 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Automated
 
-- [x] 1.1 `az account show` returns expected subscription id
-- [x] 1.2 `az webapp list-runtimes --os-type linux` includes `DOTNETCORE:10.0`
-- [x] 1.3 Functions .NET 10 isolated availability confirmed (or fallback recorded)
-- [x] 1.4 `Microsoft.Sql` and `Microsoft.Storage` show `Registered`
+- [x] 1.1 `az account show` returns expected subscription id — e17fe8e
+- [x] 1.2 `az webapp list-runtimes --os-type linux` includes `DOTNETCORE:10.0` — e17fe8e
+- [x] 1.3 Functions .NET 10 isolated availability confirmed (or fallback recorded) — e17fe8e
+- [x] 1.4 `Microsoft.Sql` and `Microsoft.Storage` show `Registered` — e17fe8e
 
 #### Manual
 
-- [x] 1.5 Human completed `az login`, confirmed tenant/subscription
-- [x] 1.6 Region/runtime fallback decision (if any) noted in `change.md`
+- [x] 1.5 Human completed `az login`, confirmed tenant/subscription — e17fe8e
+- [x] 1.6 Region/runtime fallback decision (if any) noted in `change.md` — e17fe8e
 
 ### Phase 2: Provision infrastructure
 
 #### Automated
 
-- [ ] 2.1 `az sql db show` service objective → `Basic`
-- [ ] 2.2 `az storage account show` returns the account
-- [ ] 2.3 `az functionapp show` state → `Running`; runtime is dotnet-isolated / .NET 10
-- [ ] 2.4 `az sql server firewall-rule list` shows Allow-Azure-services rule
+- [x] 2.1 `az sql db show` service objective → `Basic`
+- [x] 2.2 `az storage account show` returns the account
+- [x] 2.3 `az functionapp show` state → `Running`; runtime is dotnet-isolated / .NET 10
+- [x] 2.4 `az sql server firewall-rule list` shows Allow-Azure-services rule
 
 #### Manual
 
-- [ ] 2.5 SQL admin password + connection strings stored as secrets, not in repo
-- [ ] 2.6 Resource names + region recorded as deploy audit trail
+- [x] 2.5 SQL admin password + connection strings stored as secrets, not in repo
+- [x] 2.6 Resource names + region recorded as deploy audit trail
 
 ### Phase 3: Configure app settings & secrets
 
