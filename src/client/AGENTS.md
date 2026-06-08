@@ -37,3 +37,4 @@ Keep a clean, single-purpose component split (dobry podział na komponenty):
 - API base URL: `VITE_API_BASE_URL` (see `.env.development` → `https://localhost:7182`). The API must run on its **https** launch profile.
 - All API calls go through `@/lib/api` (`apiFetch`), which sets `credentials: 'include'` and throws `ApiError` on non-2xx.
 - Auth state lives in `@/auth/AuthContext` (`AuthProvider` + `useAuth()`). Protected routes are wrapped via `<RequireAuth>` from `@/routes/RequireAuth` — anonymous users get redirected to `/sign-in`.
+- E2E smoke: `npm run e2e` runs Playwright (`tests/e2e/auth.spec.ts`). It does **not** auto-start the stack — bring up the API (https profile, `:7182`) and the SPA dev server (`:5173`) before running. The script covers the local email/password round-trip only; Google sign-in is verified manually (Playwright cannot drive Google's consent screen).

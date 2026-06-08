@@ -369,28 +369,28 @@ No data migration. No backend code changes expected unless `Cors:AllowedOrigins`
 
 #### Automated
 
-- [x] 2.1 Build passes
-- [x] 2.2 Lint passes
+- [x] 2.1 Build passes — 542e17f
+- [x] 2.2 Lint passes — 542e17f
 
 #### Manual
 
-- [x] 2.3 Register a fresh user → navigates to `/app`; reload stays signed in
-- [x] 2.4 Login with bad password shows inline "Invalid email or password."
-- [x] 2.5 Register with weak password shows server validation inline
-- [x] 2.6 Sign out returns to `/`; `/app` is redirect-protected again
-- [x] 2.7 Navbar CTA reads "Open app" when signed in, "Sign in" when anonymous
+- [x] 2.3 Register a fresh user → navigates to `/app`; reload stays signed in — 542e17f
+- [x] 2.4 Login with bad password shows inline "Invalid email or password." — 542e17f
+- [x] 2.5 Register with weak password shows server validation inline — 542e17f
+- [x] 2.6 Sign out returns to `/`; `/app` is redirect-protected again — 542e17f
+- [x] 2.7 Navbar CTA reads "Open app" when signed in, "Sign in" when anonymous — 542e17f
 
 ### Phase 3: Google round-trip + error UX + Playwright smoke
 
 #### Automated
 
-- [ ] 3.1 Build passes
-- [ ] 3.2 Lint passes
-- [ ] 3.3 Playwright happy-path passes (`npm run e2e` with API + SPA running)
+- [x] 3.1 Build passes
+- [x] 3.2 Lint passes
+- [x] 3.3 Playwright happy-path passes (`npm run e2e` with API + SPA running)
 
 #### Manual
 
-- [ ] 3.4 Google button → consent → lands on `/app` with displayName shown
-- [ ] 3.5 Second Google sign-in reuses the existing user (no duplicate row)
-- [ ] 3.6 `/sign-in?error=account_exists` shows the friendly inline message
-- [ ] 3.7 `/sign-in?error=unknown_code` shows the generic fallback message
+- [x] 3.4 Google button → consent → lands on `/app` with displayName shown
+- [x] 3.5 Second Google sign-in reuses the existing user (no duplicate row)
+- [x] 3.6 `/sign-in?error=account_exists` shows the friendly inline message
+- [x] 3.7 `/sign-in?error=unknown_code` shows the generic fallback message
