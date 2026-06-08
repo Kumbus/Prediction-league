@@ -24,9 +24,29 @@ updated: 2026-06-08
 **Phase 2 runtime deviation**: classic Y1 Linux Consumption was unavailable in `polandcentral` (`Linux dynamic workers are not available in resource group`) — fell back to **Flex Consumption** per Phase 1 decision. Billing model still consumption.
 
 **Secrets** (NOT committed):
-- SQL admin password: surfaced once in chat to operator at Phase 2 manual gate; to be stored in operator's password manager and GitHub repo secrets in Phase 4.
-- API-Football key: already held by operator (used in dev appsettings); to be set as App/Function app setting in Phase 3.
-- Google OAuth client id/secret (prod): not yet created; to be set in Phase 3.
+- SQL admin password: surfaced once in chat to operator at Phase 2 manual gate; stored in operator's password manager and GitHub repo secrets (`SQL_ADMIN_PASSWORD`, `AZURE_SQL_CONNECTION`).
+- API-Football key: sourced from `dotnet user-secrets` (`src/server/PredictionLeague.Api`); set as App + Function app setting in Phase 3.
+- Google OAuth client id/secret: **prod reuses the dev Google OAuth client** for the friend-MVP (consciously chosen). Replace before real-user GA. Sourced from `dotnet user-secrets`; set as API app settings.
+
+# Phase 3 audit (2026-06-08)
+
+**SPA origin**: `https://thankful-desert-02de6f703.7.azurestaticapps.net` (static web app `prediction-league-web`).
+
+API app settings injected (`prediction-league-api-0523444a`):
+- `ConnectionStrings__DefaultConnection` (Azure SQL)
+- `Cors__AllowedOrigins__0` (SWA origin above)
+- `ApiFootball__ApiKey`
+- `Authentication__Google__ClientId`, `Authentication__Google__ClientSecret`
+- `httpsOnly=true`
+
+Function App settings injected (`func-prediction-league`):
+- `ConnectionStrings__DefaultConnection`
+- `ApiFootball__ApiKey`, `ApiFootball__BaseUrl=https://v3.football.api-sports.io`
+- `FixtureIngestSchedule=0 */30 * * * *` (every 30 min, match-window-frugal under API-Football free-tier 100 req/day cap)
+
+**FUNCTIONS_WORKER_RUNTIME note**: On Flex Consumption the runtime is set via `functionAppConfig.runtime.name=dotnet-isolated` (verified in Phase 2) instead of as a classic app setting — the plan's "assert `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` present" check is satisfied at the platform level.
+
+**Google OAuth callback registration (Phase 3 follow-up, HUMAN action in Google Cloud Console)**: add `https://prediction-league-api-0523444a.azurewebsites.net/signin-google` as an authorized redirect URI on the (dev/prod-shared) OAuth client. Without it, Google login returns `redirect_uri_mismatch`.
 archived_at: null
 ---
 

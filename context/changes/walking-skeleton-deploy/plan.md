@@ -374,28 +374,28 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Automated
 
-- [x] 2.1 `az sql db show` service objective → `Basic`
-- [x] 2.2 `az storage account show` returns the account
-- [x] 2.3 `az functionapp show` state → `Running`; runtime is dotnet-isolated / .NET 10
-- [x] 2.4 `az sql server firewall-rule list` shows Allow-Azure-services rule
+- [x] 2.1 `az sql db show` service objective → `Basic` — fbcc22e
+- [x] 2.2 `az storage account show` returns the account — fbcc22e
+- [x] 2.3 `az functionapp show` state → `Running`; runtime is dotnet-isolated / .NET 10 — fbcc22e
+- [x] 2.4 `az sql server firewall-rule list` shows Allow-Azure-services rule — fbcc22e
 
 #### Manual
 
-- [x] 2.5 SQL admin password + connection strings stored as secrets, not in repo
-- [x] 2.6 Resource names + region recorded as deploy audit trail
+- [x] 2.5 SQL admin password + connection strings stored as secrets, not in repo — fbcc22e
+- [x] 2.6 Resource names + region recorded as deploy audit trail — fbcc22e
 
 ### Phase 3: Configure app settings & secrets
 
 #### Automated
 
-- [ ] 3.1 API app settings show connection string, CORS origin, ApiFootball key
-- [ ] 3.2 `az webapp show` httpsOnly → `true`
-- [ ] 3.3 Function App settings show connection string, ApiFootball key, `FixtureIngestSchedule`
+- [x] 3.1 API app settings show connection string, CORS origin, ApiFootball key
+- [x] 3.2 `az webapp show` httpsOnly → `true`
+- [x] 3.3 Function App settings show connection string, ApiFootball key, `FixtureIngestSchedule`
 
 #### Manual
 
-- [ ] 3.4 No secret values in repo/workflow (references only)
-- [ ] 3.5 SWA origin value matches live SPA hostname
+- [x] 3.4 No secret values in repo/workflow (references only)
+- [x] 3.5 SWA origin value matches live SPA hostname
 
 ### Phase 4: CI/CD pipeline + auto-migrate
 
