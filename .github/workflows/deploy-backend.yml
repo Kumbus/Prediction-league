@@ -122,7 +122,9 @@ jobs:
         env:
           SQL_PASS: ${{ secrets.SQL_ADMIN_PASSWORD }}
         run: |
-          sqlcmd -S $AZURE_SQL_HOST -d $AZURE_SQL_DB -U $AZURE_SQL_USER -P "$SQL_PASS" -i migrate.sql -b -N -C
+          # -I sets QUOTED_IDENTIFIER ON — Azure SQL requires it for
+          # filtered/computed-column indexes (Identity schema has them).
+          sqlcmd -S $AZURE_SQL_HOST -d $AZURE_SQL_DB -U $AZURE_SQL_USER -P "$SQL_PASS" -i migrate.sql -b -N -C -I
 
       - name: Remove CI firewall rule
         if: always() && steps.openfw.outputs.rule != ''
