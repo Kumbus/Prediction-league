@@ -76,6 +76,50 @@ Three commits to land a green workflow on `main`:
 | #27125886319 | ee5dbd3 (fix: `include-hidden-files: true` on func artifact; SP auth for API instead of publish-profile) | ✅ all jobs green. Idempotent EF script applied (both `20260530155119_InitialCreate` and `20260607113246_AddFootballIngestModel` baked in); `FixtureIngestTimer` registered on func app; `ci-<run>` firewall rule deleted by `always()` cleanup. |
 
 **Post-deploy startup trap (resolved out-of-band, then baked into workflow)**: after the green deploy, the API responded 404 on every route and the docker log showed `Content root path: /defaulthome/hostingstart/`. wwwroot inspection via Kudu (mgmt-bearer AAD token; SCM Basic Auth stays disabled by design — request to enable was blocked by Claude Code auto-mode classifier and that was the right call) revealed both the **new** `PredictionLeague.Api.dll` and the **stale** `PredictionLeague.dll`/`PredictionLeague.exe` from the 2026-05-23 pre-F-01 deploy living side by side. App Service auto-detect picked the wrong entry → fallback page. Fixed by `az webapp config set --startup-file "dotnet PredictionLeague.Api.dll"` and then committed as a defensive `Pin startup command` step in `deploy-backend.yml` (idempotent on subsequent runs).
+
+# Phase 5 final audit (2026-06-08)
+
+## End-to-end smoke verification (live against prod)
+
+| Check                                                                | Result                                                                                                                                                       |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /health/db`                                                     | `200` / body `Healthy` — proves API → Azure SQL Basic connectivity end-to-end                                                                                |
+| `GET /api/auth/me` anonymous (adapted from removed `/api/leagues`)   | `401` — proves ASP.NET pipeline (CORS → Authentication → Authorization) is wired and the API is serving from `PredictionLeague.Api.dll`, not the default page |
+| `GET /api/auth/login/google`                                         | `302` → `https://accounts.google.com/o/oauth2/v2/auth?client_id=820162924702-…&redirect_uri=https%3A%2F%2F<api-host>%2Fsignin-google&…` — Google scheme registered, redirect URI uses the prod API host |
+| Function App functions list                                          | `func-prediction-league/FixtureIngestTimer` (dotnet-isolated) registered                                                                                     |
+| SPA over CDN                                                         | `https://thankful-desert-02de6f703.7.azurestaticapps.net/` → `200`                                                                                          |
+
+## Final resource audit trail
+
+| Item                       | Value                                                                                                                                                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Subscription               | `dd204810-4214-41a4-880b-05fe99e649e4` (Visual Studio Enterprise – MPN, tenant `onedynamics.pl`)                                                                                                                       |
+| Resource group             | `rg-prediction-league`                                                                                                                                                                                                 |
+| Region                     | `polandcentral`                                                                                                                                                                                                        |
+| API Web App                | `prediction-league-api-0523444a` — `https://prediction-league-api-0523444a.azurewebsites.net` (Linux, .NET 10, startup pinned to `dotnet PredictionLeague.Api.dll`, `httpsOnly=true`)                                  |
+| App Service plan           | `asp-prediction-league` (F1 Linux, reused from 2026-05-23 deploy)                                                                                                                                                       |
+| Function App               | `func-prediction-league` — `https://func-prediction-league.azurewebsites.net` (Flex Consumption / `dotnet-isolated 10`, `FixtureIngestSchedule=0 */30 * * * *`)                                                         |
+| Application Insights       | `func-prediction-league` (auto-created by CLI on Function App provision; not yet instrumented)                                                                                                                          |
+| Storage account            | `stpredictionleague` (Standard_LRS, StorageV2) — backs Flex Consumption deployment + AzureWebJobsStorage                                                                                                                |
+| Azure SQL server           | `sql-prediction-league.database.windows.net` (admin `sqladmin`, password in `SQL_ADMIN_PASSWORD` GH secret + operator password manager)                                                                                  |
+| Azure SQL database         | `appdb` (Basic, 5 DTU, `Encrypt=True`)                                                                                                                                                                                  |
+| SQL firewall rules         | `AllowAzureServices` (0.0.0.0/0.0.0.0); transient `ci-<run-id>` rules created/destroyed by the migrate job                                                                                                              |
+| Static Web App (SPA)       | `prediction-league-web` — `https://thankful-desert-02de6f703.7.azurestaticapps.net` (existing from 2026-05-23 deploy)                                                                                                  |
+| Service principal (CI)     | `gh-actions-walking-skeleton` (rg-scoped Contributor), JSON creds in `AZURE_CREDENTIALS` GH secret                                                                                                                       |
+| GH Actions secrets         | `AZURE_CREDENTIALS`, `AZURE_SQL_CONNECTION`, `SQL_ADMIN_PASSWORD`, `AZURE_API_PUBLISH_PROFILE` (kept though unused after switching to SP auth), `AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_DESERT_02DE6F703` (pre-existing) |
+| Deploy workflow            | `.github/workflows/deploy-backend.yml` — triggers on `push` to `main` with `src/server/**` paths, and `workflow_dispatch`                                                                                                |
+
+## Deviation note links
+
+Foundation docs updated in Phase 5:
+- `context/foundation/infrastructure-v2.md` — 2026-06-08 deviations + deferred hardening section
+- `context/foundation/roadmap.md` — F-04 row flipped `proposed` → `done` with a pointer to the deviation note
+- `context/foundation/lessons.md` — two recurring rules appended (App Service entry-assembly pinning; SCM Basic Auth disabled by default → use SP auth)
+
+## Manual follow-ups still owned by the operator (NOT blockers)
+
+- Save the SQL admin password to the password manager (already surfaced once at the Phase 2 gate).
+- Add `https://prediction-league-api-0523444a.azurewebsites.net/signin-google` as an authorized redirect URI in the Google Cloud Console on the shared dev/prod OAuth client. Without this, real Google sign-in completes with a `redirect_uri_mismatch`. The `/api/auth/login/google` → `302` automated check verifies the *server-side* challenge issuance only.
 archived_at: null
 ---
 
