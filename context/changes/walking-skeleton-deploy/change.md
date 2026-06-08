@@ -47,6 +47,23 @@ Function App settings injected (`func-prediction-league`):
 **FUNCTIONS_WORKER_RUNTIME note**: On Flex Consumption the runtime is set via `functionAppConfig.runtime.name=dotnet-isolated` (verified in Phase 2) instead of as a classic app setting — the plan's "assert `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` present" check is satisfied at the platform level.
 
 **Google OAuth callback registration (Phase 3 follow-up, HUMAN action in Google Cloud Console)**: add `https://prediction-league-api-0523444a.azurewebsites.net/signin-google` as an authorized redirect URI on the (dev/prod-shared) OAuth client. Without it, Google login returns `redirect_uri_mismatch`.
+
+# Phase 4 staging (2026-06-08)
+
+Workflow file: `.github/workflows/deploy-backend.yml`. Jobs:
+
+```
+build  ──►  migrate  ──►  ┬── deploy-api  (azure/webapps-deploy + publish profile)
+                          └── deploy-func (azure/login SP + Azure/functions-action)
+```
+
+Trigger: `push` to `main` touching `src/server/**` or the workflow itself; also `workflow_dispatch`.
+
+Build step generates `migrate.sql` via `dotnet ef migrations script --idempotent` with a dummy `ConnectionStrings__DefaultConnection` env to defuse the `AddInfrastructure` connection-string-required throw (see `DependencyInjection.cs:25-28`). Migrate step uses the rg-scoped service principal (`AZURE_CREDENTIALS`) to open a transient `ci-<run-id>` SQL firewall rule for the runner IP, applies the script via `sqlcmd`, and deletes the rule in an `always()` step.
+
+**Func deploy deviation (Phase 2 fallback consequence)**: `azure/webapps-deploy` does not apply to Function Apps on Flex Consumption (no publish profile). Replaced with `azure/login` + `Azure/functions-action@v1` using the same SP creds.
+
+**Phase 4 status**: workflow file committed; **first run still pending** — operator will push to `main` manually. Automated checks 4.1–4.3 + manual 4.5 stay unchecked until the first green run.
 archived_at: null
 ---
 

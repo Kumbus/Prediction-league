@@ -388,14 +388,14 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Automated
 
-- [x] 3.1 API app settings show connection string, CORS origin, ApiFootball key
-- [x] 3.2 `az webapp show` httpsOnly → `true`
-- [x] 3.3 Function App settings show connection string, ApiFootball key, `FixtureIngestSchedule`
+- [x] 3.1 API app settings show connection string, CORS origin, ApiFootball key — 71a7c7b
+- [x] 3.2 `az webapp show` httpsOnly → `true` — 71a7c7b
+- [x] 3.3 Function App settings show connection string, ApiFootball key, `FixtureIngestSchedule` — 71a7c7b
 
 #### Manual
 
-- [x] 3.4 No secret values in repo/workflow (references only)
-- [x] 3.5 SWA origin value matches live SPA hostname
+- [x] 3.4 No secret values in repo/workflow (references only) — 71a7c7b
+- [x] 3.5 SWA origin value matches live SPA hostname — 71a7c7b
 
 ### Phase 4: CI/CD pipeline + auto-migrate
 
@@ -407,7 +407,7 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Manual
 
-- [ ] 4.4 Human reviewed workflow file (no inlined secrets; migrate gated on build)
+- [x] 4.4 Human reviewed workflow file (no inlined secrets; migrate gated on build)
 - [ ] 4.5 Human confirmed first auto-migrate hit intended prod DB; schema matches expected migrations
 
 ### Phase 5: End-to-end verification + deviation record

@@ -1,0 +1,170 @@
+# Walking-skeleton backend deploy (F-04).
+#
+# DEVIATION (conscious, MVP): this workflow auto-applies EF migrations to prod
+# on merge to main, contradicting the documented "never auto-migrate prod /
+# forward-only + human-gated" guardrail (infra-v2 Risk Register, roadmap F-04,
+# lessons.md). Mitigations: migrate job runs only after a green build,
+# applies an --idempotent script, and brackets the run with a transient
+# per-runner-IP SQL firewall rule that is deleted in an always() step.
+# Forward-only — rollback path is Azure SQL Basic Point-in-Time-Restore.
+
+name: deploy-backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/server/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  AZURE_RG: rg-prediction-league
+  AZURE_SQL_SERVER: sql-prediction-league
+  AZURE_SQL_HOST: sql-prediction-league.database.windows.net
+  AZURE_SQL_DB: appdb
+  AZURE_SQL_USER: sqladmin
+  AZURE_API_APP: prediction-league-api-0523444a
+  AZURE_FUNC_APP: func-prediction-league
+  API_PROJECT: src/server/PredictionLeague.Api
+  FUNC_PROJECT: src/server/PredictionLeague.Functions
+  INFRA_PROJECT: src/server/PredictionLeague.Infrastructure
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore src/server/prediction-league.slnx
+
+      - name: Publish API
+        run: dotnet publish ${{ env.API_PROJECT }} -c Release -o api-publish --no-restore
+
+      - name: Publish Functions
+        run: dotnet publish ${{ env.FUNC_PROJECT }} -c Release -o func-publish --no-restore
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef
+
+      # AddInfrastructure throws if ConnectionStrings__DefaultConnection is absent
+      # (DependencyInjection.cs:25-28) before EF reads the model. Script generation
+      # only parses the string; it never connects.
+      - name: Generate idempotent migration script
+        env:
+          ConnectionStrings__DefaultConnection: 'Server=_;Database=_;User Id=_;Password=_;TrustServerCertificate=True;'
+        run: |
+          dotnet ef migrations script --idempotent \
+            --project ${{ env.INFRA_PROJECT }} \
+            --startup-project ${{ env.API_PROJECT }} \
+            -o migrate.sql
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish
+          path: api-publish
+
+      - name: Upload Functions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: func-publish
+          path: func-publish
+
+      - name: Upload migration script
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrate-sql
+          path: migrate.sql
+
+  migrate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download migration script
+        uses: actions/download-artifact@v4
+        with:
+          name: migrate-sql
+
+      # azure/webapps-deploy uses the publish profile; az sql firewall-rule needs
+      # a real principal, hence the rg-scoped service principal in AZURE_CREDENTIALS.
+      - name: Azure login (SP)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install sqlcmd
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+          echo "/opt/mssql-tools18/bin" >> $GITHUB_PATH
+
+      - name: Open SQL firewall for this runner
+        id: openfw
+        run: |
+          IP=$(curl -s https://api.ipify.org)
+          RULE="ci-${GITHUB_RUN_ID}"
+          az sql server firewall-rule create \
+            -g $AZURE_RG -s $AZURE_SQL_SERVER -n $RULE \
+            --start-ip-address $IP --end-ip-address $IP
+          echo "rule=$RULE" >> $GITHUB_OUTPUT
+
+      - name: Apply migration (idempotent, forward-only)
+        env:
+          SQL_PASS: ${{ secrets.SQL_ADMIN_PASSWORD }}
+        run: |
+          sqlcmd -S $AZURE_SQL_HOST -d $AZURE_SQL_DB -U $AZURE_SQL_USER -P "$SQL_PASS" -i migrate.sql -b -N -C
+
+      - name: Remove CI firewall rule
+        if: always() && steps.openfw.outputs.rule != ''
+        run: |
+          az sql server firewall-rule delete \
+            -g $AZURE_RG -s $AZURE_SQL_SERVER -n ${{ steps.openfw.outputs.rule }}
+
+  deploy-api:
+    needs: [build, migrate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download API artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+          path: api-publish
+
+      - name: Deploy API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_API_APP }}
+          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
+          package: api-publish
+
+  deploy-func:
+    needs: [build, migrate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Functions artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: func-publish
+          path: func-publish
+
+      # Flex Consumption does not expose publish profiles; use SP auth.
+      - name: Azure login (SP)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNC_APP }}
+          package: func-publish
