@@ -384,13 +384,13 @@ No data migration. No backend code changes expected unless `Cors:AllowedOrigins`
 
 #### Automated
 
-- [x] 3.1 Build passes
-- [x] 3.2 Lint passes
-- [x] 3.3 Playwright happy-path passes (`npm run e2e` with API + SPA running)
+- [x] 3.1 Build passes — e47083b
+- [x] 3.2 Lint passes — e47083b
+- [x] 3.3 Playwright happy-path passes (`npm run e2e` with API + SPA running) — e47083b
 
 #### Manual
 
-- [x] 3.4 Google button → consent → lands on `/app` with displayName shown
-- [x] 3.5 Second Google sign-in reuses the existing user (no duplicate row)
-- [x] 3.6 `/sign-in?error=account_exists` shows the friendly inline message
-- [x] 3.7 `/sign-in?error=unknown_code` shows the generic fallback message
+- [x] 3.4 Google button → consent → lands on `/app` with displayName shown — e47083b
+- [x] 3.5 Second Google sign-in reuses the existing user (no duplicate row) — e47083b
+- [x] 3.6 `/sign-in?error=account_exists` shows the friendly inline message — e47083b
+- [x] 3.7 `/sign-in?error=unknown_code` shows the generic fallback message — e47083b
