@@ -101,7 +101,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Download migration script
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: migrate-sql
 
@@ -150,7 +150,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download API artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: api-publish
           path: api-publish
@@ -183,7 +183,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download Functions artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: func-publish
           path: func-publish
