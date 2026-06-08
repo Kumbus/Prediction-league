@@ -414,15 +414,15 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Automated
 
-- [x] 5.1 `curl /health/db` → `200` / Healthy
-- [x] 5.2 ~~`curl /api/leagues` → `200`~~ **ADAPTED**: `LeaguesController` was removed in the F-01 layered refactor (no public list endpoint exists yet). Substitute: `curl /api/auth/me` → `401` confirms ASP.NET pipeline (CORS → Auth → Authorize) is wired and the API is serving from the new assembly, not the stale 2026-05-23 default page.
-- [x] 5.3 Anonymous `[Authorize]` route → `401`
-- [x] 5.4 Google challenge route → `302` to `accounts.google.com`
+- [x] 5.1 `curl /health/db` → `200` / Healthy — f5ed2f8
+- [x] 5.2 ~~`curl /api/leagues` → `200`~~ **ADAPTED**: `LeaguesController` was removed in the F-01 layered refactor (no public list endpoint exists yet). Substitute: `curl /api/auth/me` → `401` confirms ASP.NET pipeline (CORS → Auth → Authorize) is wired and the API is serving from the new assembly, not the stale 2026-05-23 default page. — f5ed2f8
+- [x] 5.3 Anonymous `[Authorize]` route → `401` — f5ed2f8
+- [x] 5.4 Google challenge route → `302` to `accounts.google.com` — f5ed2f8
 
 #### Manual
 
-- [x] 5.5 Prod Google redirect URI registered; real Google login completes end-to-end
-- [x] 5.6 Function App timer registered, reading prod settings (logs reviewed)
-- [x] 5.7 SPA loads over CDN
-- [x] 5.8 Deviation note added to infra-v2 / roadmap / lessons; deferred-hardening listed
-- [x] 5.9 Final resource names + URLs recorded in `change.md`
+- [x] 5.5 Prod Google redirect URI registered; real Google login completes end-to-end — f5ed2f8
+- [x] 5.6 Function App timer registered, reading prod settings (logs reviewed) — f5ed2f8
+- [x] 5.7 SPA loads over CDN — f5ed2f8
+- [x] 5.8 Deviation note added to infra-v2 / roadmap / lessons; deferred-hardening listed — f5ed2f8
+- [x] 5.9 Final resource names + URLs recorded in `change.md` — f5ed2f8

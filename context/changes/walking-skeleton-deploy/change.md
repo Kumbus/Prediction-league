@@ -1,7 +1,7 @@
 ---
 change_id: walking-skeleton-deploy
 title: Walking-skeleton Azure deploy — layered API + Azure SQL, first prod migration
-status: implementing
+status: implemented
 created: 2026-06-07
 updated: 2026-06-08
 
