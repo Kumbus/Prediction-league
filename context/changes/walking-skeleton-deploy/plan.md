@@ -401,21 +401,21 @@ No automated test suite exists in either unit (per AGENTS.md) — verification i
 
 #### Automated
 
-- [ ] 4.1 Push to `main` triggers workflow; all jobs green (`gh run view`)
-- [ ] 4.2 Idempotent migration script applied without error
-- [ ] 4.3 Transient `ci-<run-id>` firewall rule absent after run
+- [x] 4.1 Push to `main` triggers workflow; all jobs green (`gh run view`)
+- [x] 4.2 Idempotent migration script applied without error
+- [x] 4.3 Transient `ci-<run-id>` firewall rule absent after run
 
 #### Manual
 
-- [x] 4.4 Human reviewed workflow file (no inlined secrets; migrate gated on build)
-- [ ] 4.5 Human confirmed first auto-migrate hit intended prod DB; schema matches expected migrations
+- [x] 4.4 Human reviewed workflow file (no inlined secrets; migrate gated on build) — 4771fe6
+- [x] 4.5 Human confirmed first auto-migrate hit intended prod DB; schema matches expected migrations
 
 ### Phase 5: End-to-end verification + deviation record
 
 #### Automated
 
 - [ ] 5.1 `curl /health/db` → `200` / Healthy
-- [ ] 5.2 `curl /api/leagues` → `200`
+- [ ] 5.2 ~~`curl /api/leagues` → `200`~~ **ADAPTED**: `LeaguesController` was removed in the F-01 layered refactor (no public list endpoint exists yet). Substitute: `curl /api/auth/me` → `401` confirms ASP.NET pipeline (CORS → Auth → Authorize) is wired and the API is serving from the new assembly, not the stale 2026-05-23 default page.
 - [ ] 5.3 Anonymous `[Authorize]` route → `401`
 - [ ] 5.4 Google challenge route → `302` to `accounts.google.com`
 

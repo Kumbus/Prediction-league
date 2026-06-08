@@ -64,6 +64,18 @@ Build step generates `migrate.sql` via `dotnet ef migrations script --idempotent
 **Func deploy deviation (Phase 2 fallback consequence)**: `azure/webapps-deploy` does not apply to Function Apps on Flex Consumption (no publish profile). Replaced with `azure/login` + `Azure/functions-action@v1` using the same SP creds.
 
 **Phase 4 status**: workflow file committed; **first run still pending** — operator will push to `main` manually. Automated checks 4.1–4.3 + manual 4.5 stay unchecked until the first green run.
+
+# Phase 4 first-run record (2026-06-08)
+
+Three commits to land a green workflow on `main`:
+
+| Run | Commit | Outcome |
+| --- | --- | --- |
+| #27125534998 | 4771fe6 (PR #27 merge) | ❌ migrate: `CREATE INDEX failed because SET options have incorrect settings: 'QUOTED_IDENTIFIER'`. Azure SQL requires `QUOTED_IDENTIFIER ON` for Identity's filtered/computed-column indexes; sqlcmd defaults to OFF. |
+| #27125657881 | bde0841 (fix: `sqlcmd -I`) | ✅ migrate. ❌ deploy-func: `InvalidPackageContentException: Cannot find required .azurefunctions directory at root level in the .zip package`. `actions/upload-artifact@v4` excludes hidden files by default — `.azurefunctions/` was dropped. ❌ deploy-api: `Publish profile is invalid for app-name and slot-name provided` because SCM Basic Auth is disabled on the API app (`basicPublishingCredentialsPolicies/scm.properties.allow=false`). |
+| #27125886319 | ee5dbd3 (fix: `include-hidden-files: true` on func artifact; SP auth for API instead of publish-profile) | ✅ all jobs green. Idempotent EF script applied (both `20260530155119_InitialCreate` and `20260607113246_AddFootballIngestModel` baked in); `FixtureIngestTimer` registered on func app; `ci-<run>` firewall rule deleted by `always()` cleanup. |
+
+**Post-deploy startup trap (resolved out-of-band, then baked into workflow)**: after the green deploy, the API responded 404 on every route and the docker log showed `Content root path: /defaulthome/hostingstart/`. wwwroot inspection via Kudu (mgmt-bearer AAD token; SCM Basic Auth stays disabled by design — request to enable was blocked by Claude Code auto-mode classifier and that was the right call) revealed both the **new** `PredictionLeague.Api.dll` and the **stale** `PredictionLeague.dll`/`PredictionLeague.exe` from the 2026-05-23 pre-F-01 deploy living side by side. App Service auto-detect picked the wrong entry → fallback page. Fixed by `az webapp config set --startup-file "dotnet PredictionLeague.Api.dll"` and then committed as a defensive `Pin startup command` step in `deploy-backend.yml` (idempotent on subsequent runs).
 archived_at: null
 ---
 

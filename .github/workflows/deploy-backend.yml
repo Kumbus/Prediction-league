@@ -158,6 +158,15 @@ jobs:
           app-name: ${{ env.AZURE_API_APP }}
           package: api-publish
 
+      # Stale binaries from the 2026-05-23 scaffold deploy (assembly was named
+      # PredictionLeague; renamed to PredictionLeague.Api in the F-01 refactor)
+      # confuse App Service auto-detect → falls back to /defaulthome/hostingstart/.
+      # Pin the entry assembly explicitly. Idempotent.
+      - name: Pin startup command
+        run: |
+          az webapp config set -n $AZURE_API_APP -g $AZURE_RG \
+            --startup-file "dotnet PredictionLeague.Api.dll"
+
   deploy-func:
     needs: [build, migrate]
     runs-on: ubuntu-latest
