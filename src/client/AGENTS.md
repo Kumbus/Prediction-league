@@ -29,4 +29,11 @@ Keep a clean, single-purpose component split (dobry podział na komponenty):
 
 ## State
 
-`src/` landing page is built (per-section components under `components/landing/`, composed in `App.tsx`). No router, no data-fetching layer, no API client yet — these are assembled by hand (the chosen Vite-React starter ships none). When wiring API calls, the backend dev URL is `http://localhost:5185`.
+`src/` landing page is built (per-section components under `components/landing/`). Routing via `react-router-dom`'s `createBrowserRouter`; route components live under `src/routes/`. No global data-fetching layer yet.
+
+## Auth
+
+- Dev server runs on **`https://localhost:5173`** (self-signed cert via `@vitejs/plugin-basic-ssl`) so the API's `Secure;SameSite=None` cookie flows. Accept the browser cert warning once.
+- API base URL: `VITE_API_BASE_URL` (see `.env.development` → `https://localhost:7182`). The API must run on its **https** launch profile.
+- All API calls go through `@/lib/api` (`apiFetch`), which sets `credentials: 'include'` and throws `ApiError` on non-2xx.
+- Auth state lives in `@/auth/AuthContext` (`AuthProvider` + `useAuth()`). Protected routes are wrapped via `<RequireAuth>` from `@/routes/RequireAuth` — anonymous users get redirected to `/sign-in`.
