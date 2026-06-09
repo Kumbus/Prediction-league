@@ -16,11 +16,16 @@ public class TournamentsController : ControllerBase
 {
     private readonly ITournamentRepository _tournaments;
     private readonly ILeagueRepository _leagues;
+    private readonly IMatchRepository _matches;
 
-    public TournamentsController(ITournamentRepository tournaments, ILeagueRepository leagues)
+    public TournamentsController(
+        ITournamentRepository tournaments,
+        ILeagueRepository leagues,
+        IMatchRepository matches)
     {
         _tournaments = tournaments;
         _leagues = leagues;
+        _matches = matches;
     }
 
     public record TournamentResponse(
@@ -150,6 +155,19 @@ public class TournamentsController : ControllerBase
         await _tournaments.SaveChangesAsync(cancellationToken);
 
         return NoContent();
+    }
+
+    // GET api/tournaments/{id}/matches — admin sees regardless of publish; non-admin gets 404
+    // on a draft (no information leak). Empty tournament returns [].
+    [HttpGet("{id:guid}/matches")]
+    public async Task<IActionResult> Matches(Guid id, CancellationToken cancellationToken)
+    {
+        var tournament = await _tournaments.GetByIdAsync(id, cancellationToken);
+        if (tournament is null) return NotFound();
+        if (!tournament.IsPublished && !IsAdmin()) return NotFound();
+
+        var matches = await _matches.ListByTournamentAsync(id, cancellationToken);
+        return Ok(matches);
     }
 
     private bool IsAdmin() => User.HasClaim(AuthorizationPolicies.AdminClaimType, "true");

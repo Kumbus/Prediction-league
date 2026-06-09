@@ -630,31 +630,31 @@ No test project exists. Verification is build-gated + manual end-to-end, like F-
 
 #### Automated
 
-- [x] 3.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 3.2 `CsvHelper` restores: `dotnet restore`
+- [x] 3.1 Solution builds: `dotnet build src/server/prediction-league.slnx` — 4c7e2bc
+- [x] 3.2 `CsvHelper` restores: `dotnet restore` — 4c7e2bc
 
 #### Manual
 
-- [x] 3.3 `GET /api/nationalities` returns the seeded list (~250 rows)
-- [x] 3.4 `POST /api/players` creates a player; `PATCH /api/players/{id}` updates only non-null fields
-- [x] 3.5 CSV `dryRun=true` preview shows correct create/update/conflict counts
-- [x] 3.6 CSV `dryRun=false` commit: DB matches the preview
-- [x] 3.7 CSV re-upload is idempotent (no duplicates, no conflicts)
-- [x] 3.8 Upload with `tournamentId` populates `TournamentSquads` for resolved players
-- [x] 3.9 Unknown NationalityCode row reported as conflict, not written
-- [x] 3.10 ExternalPlayerId reused by a different player reported as conflict, not written
+- [x] 3.3 `GET /api/nationalities` returns the seeded list (~250 rows) — 4c7e2bc
+- [x] 3.4 `POST /api/players` creates a player; `PATCH /api/players/{id}` updates only non-null fields — 4c7e2bc
+- [x] 3.5 CSV `dryRun=true` preview shows correct create/update/conflict counts — 4c7e2bc
+- [x] 3.6 CSV `dryRun=false` commit: DB matches the preview — 4c7e2bc
+- [x] 3.7 CSV re-upload is idempotent (no duplicates, no conflicts) — 4c7e2bc
+- [x] 3.8 Upload with `tournamentId` populates `TournamentSquads` for resolved players — 4c7e2bc
+- [x] 3.9 Unknown NationalityCode row reported as conflict, not written — 4c7e2bc
+- [x] 3.10 ExternalPlayerId reused by a different player reported as conflict, not written — 4c7e2bc
 
 ### Phase 4: Tournament Matches Read Endpoint
 
 #### Automated
 
-- [ ] 4.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 4.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
 
 #### Manual
 
-- [ ] 4.2 `GET /api/tournaments/{id}/matches` returns ingested matches with correct scorer + team attribution
-- [ ] 4.3 Draft tournament: admin sees data, non-admin gets 404
-- [ ] 4.4 Empty tournament returns `[]` without error
+- [x] 4.2 `GET /api/tournaments/{id}/matches` returns ingested matches with correct scorer + team attribution
+- [x] 4.3 Draft tournament: admin sees data, non-admin gets 404
+- [x] 4.4 Empty tournament returns `[]` without error
 
 ### Phase 5: Client Admin Section
 

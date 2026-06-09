@@ -16,4 +16,29 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
         => await Set
             .Include(m => m.Events)
             .FirstOrDefaultAsync(m => m.ExternalFixtureId == externalFixtureId, cancellationToken);
+
+    public async Task<IReadOnlyList<MatchWithEventsDto>> ListByTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default)
+    {
+        var query =
+            from m in Context.Matches.Where(m => m.TournamentId == tournamentId)
+            join home in Context.Teams on m.HomeTeamId equals home.Id
+            join away in Context.Teams on m.AwayTeamId equals away.Id
+            orderby m.KickoffUtc
+            select new MatchWithEventsDto(
+                m.Id,
+                m.ExternalFixtureId,
+                m.KickoffUtc,
+                m.Status,
+                new TeamRefDto(home.Id, home.Name, m.HomeScore),
+                new TeamRefDto(away.Id, away.Name, m.AwayScore),
+                (from e in Context.MatchEvents.Where(e => e.MatchId == m.Id)
+                 join p in Context.Players on e.PlayerId equals p.Id
+                 join t in Context.Teams on e.TeamId equals t.Id
+                 join et in Context.MatchEventTypes on e.MatchEventTypeId equals et.Id
+                 orderby e.Minute, e.MinuteExtra
+                 select new MatchEventDto(e.Minute, e.MinuteExtra, et.Code, et.Category, p.Name, t.Name)
+                ).ToList());
+
+        return await query.ToListAsync(cancellationToken);
+    }
 }
