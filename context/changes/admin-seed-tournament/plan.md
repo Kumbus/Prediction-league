@@ -648,28 +648,28 @@ No test project exists. Verification is build-gated + manual end-to-end, like F-
 
 #### Automated
 
-- [x] 4.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 4.1 Solution builds: `dotnet build src/server/prediction-league.slnx` — 5f76694
 
 #### Manual
 
-- [x] 4.2 `GET /api/tournaments/{id}/matches` returns ingested matches with correct scorer + team attribution
-- [x] 4.3 Draft tournament: admin sees data, non-admin gets 404
-- [x] 4.4 Empty tournament returns `[]` without error
+- [x] 4.2 `GET /api/tournaments/{id}/matches` returns ingested matches with correct scorer + team attribution — 5f76694
+- [x] 4.3 Draft tournament: admin sees data, non-admin gets 404 — 5f76694
+- [x] 4.4 Empty tournament returns `[]` without error — 5f76694
 
 ### Phase 5: Client Admin Section
 
 #### Automated
 
-- [ ] 5.1 Type-check + build pass: `npm run build`
-- [ ] 5.2 Lint passes: `npm run lint`
+- [x] 5.1 Type-check + build pass: `npm run build`
+- [x] 5.2 Lint passes: `npm run lint`
 
 #### Manual
 
-- [ ] 5.3 Non-admin: no Admin link; `/admin/*` redirects to `/app`
-- [ ] 5.4 Allowlisted admin: Admin link appears in shell
-- [ ] 5.5 Admin Tournament CRUD + Publish toggle: non-admin sees only Published
-- [ ] 5.6 Edit form disables `ExternalApiId`
-- [ ] 5.7 Delete on tournament with no leagues succeeds; with leagues → 409 message
-- [ ] 5.8 Tournament detail Ingest button populates counts + matches/events list (scorer + team)
-- [ ] 5.9 Players list paginates; create + edit work; nationality dropdown shows seeded list
-- [ ] 5.10 CSV preview → commit flow works; re-upload idempotent; tournamentId binding writes TournamentSquads
+- [x] 5.3 Non-admin: no Admin link; `/admin/*` redirects to `/app`
+- [x] 5.4 Allowlisted admin: Admin link appears in shell
+- [x] 5.5 Admin Tournament CRUD + Publish toggle: non-admin sees only Published
+- [x] 5.6 Edit form disables `ExternalApiId`
+- [x] 5.7 Delete on tournament with no leagues succeeds; with leagues → 409 message
+- [x] 5.8 Tournament detail Ingest button populates counts + matches/events list (scorer + team)
+- [x] 5.9 Players list paginates; create + edit work; nationality dropdown shows seeded list
+- [x] 5.10 CSV preview → commit flow works; re-upload idempotent; tournamentId binding writes TournamentSquads
