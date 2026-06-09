@@ -6,21 +6,19 @@ using PredictionLeague.Infrastructure.Identity;
 
 namespace PredictionLeague.Api.Controllers;
 
-// Guarded on-demand ingest for verifying F-03 before S-02 exists; S-02 later reuses the
-// service. Now gated by the real AdminOnly policy (F-02); the Development 404 guard below
-// stays as defense-in-depth so the route is unreachable in a deployed config.
+// On-demand ingest used by the admin verification page. Gated by the AdminOnly policy (F-02);
+// the dev-only 404 guard from the F-03 walking-skeleton phase has been removed now that real
+// auth + admin promotion (S-02 Phase 1) is in place.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
 public class IngestController : ControllerBase
 {
     private readonly IFixtureIngestService _ingest;
-    private readonly IWebHostEnvironment _environment;
 
-    public IngestController(IFixtureIngestService ingest, IWebHostEnvironment environment)
+    public IngestController(IFixtureIngestService ingest)
     {
         _ingest = ingest;
-        _environment = environment;
     }
 
     // POST api/ingest/{tournamentId}?season={season}&date={date}
@@ -31,11 +29,6 @@ public class IngestController : ControllerBase
         [FromQuery] DateOnly? date,
         CancellationToken cancellationToken)
     {
-        // Dev-only gate — non-dev callers get 404, so the route is not anonymously reachable
-        // in a deployed config before F-02 auth lands.
-        if (!_environment.IsDevelopment())
-            return NotFound();
-
         try
         {
             var result = await _ingest.IngestTournamentAsync(tournamentId, season, date, cancellationToken);

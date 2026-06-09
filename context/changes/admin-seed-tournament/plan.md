@@ -602,29 +602,29 @@ No test project exists. Verification is build-gated + manual end-to-end, like F-
 
 #### Automated
 
-- [x] 1.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 1.2 Migration generates without snapshot errors: `dotnet ef migrations add AddAdminSeedSurface`
-- [x] 1.3 Migration applies cleanly on dev startup
-- [x] 1.4 `GET /health/db` returns healthy after migration
+- [x] 1.1 Solution builds: `dotnet build src/server/prediction-league.slnx` — 3a90cae
+- [x] 1.2 Migration generates without snapshot errors: `dotnet ef migrations add AddAdminSeedSurface` — 3a90cae
+- [x] 1.3 Migration applies cleanly on dev startup — 3a90cae
+- [x] 1.4 `GET /health/db` returns healthy after migration — 3a90cae
 
 #### Manual
 
-- [x] 1.5 `Nationalities`/`TournamentSquads` tables exist; `Tournaments.IsPublished` + Player columns added; filtered unique index on `Tournaments.ExternalApiId` exists
-- [x] 1.6 Admin allowlist promotes IsGlobalAdmin on fresh sign-in and refreshes the cookie
+- [x] 1.5 `Nationalities`/`TournamentSquads` tables exist; `Tournaments.IsPublished` + Player columns added; filtered unique index on `Tournaments.ExternalApiId` exists — 3a90cae
+- [x] 1.6 Admin allowlist promotes IsGlobalAdmin on fresh sign-in and refreshes the cookie — 3a90cae
 
 ### Phase 2: Tournament Admin API + IngestController Hardening
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [ ] 2.2 Existing `POST api/ingest/{tournamentId}` still works against a Draft tournament with admin auth
+- [x] 2.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 2.2 Existing `POST api/ingest/{tournamentId}` still works against a Draft tournament with admin auth
 
 #### Manual
 
-- [ ] 2.3 Admin CRUD round-trip: POST/GET/PUT/PATCH/DELETE works as specified
-- [ ] 2.4 Non-admin sees only Published tournaments and gets 403 on writes
-- [ ] 2.5 DELETE on a tournament with leagues returns 409
-- [ ] 2.6 `POST /api/ingest/{id}` works in non-Development environment with an admin cookie
+- [x] 2.3 Admin CRUD round-trip: POST/GET/PUT/PATCH/DELETE works as specified
+- [x] 2.4 Non-admin sees only Published tournaments and gets 403 on writes
+- [x] 2.5 DELETE on a tournament with leagues returns 409
+- [x] 2.6 `POST /api/ingest/{id}` works in non-Development environment with an admin cookie
 
 ### Phase 3: Player + Nationality API + CSV Bulk Import
 

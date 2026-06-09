@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Domain.Entities;
 
@@ -10,4 +11,7 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
     public LeagueRepository(AppDbContext context) : base(context)
     {
     }
+
+    public async Task<bool> AnyForTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default)
+        => await Set.AnyAsync(l => l.TournamentId == tournamentId, cancellationToken);
 }

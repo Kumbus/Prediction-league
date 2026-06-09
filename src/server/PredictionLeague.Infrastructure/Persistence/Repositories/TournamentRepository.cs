@@ -18,4 +18,12 @@ public class TournamentRepository : BaseRepository<Tournament>, ITournamentRepos
         => await Set
             .Where(t => t.ExternalApiId != null && t.StartDate <= onDate && onDate <= t.EndDate)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Tournament>> ListAsync(bool includeUnpublished, CancellationToken cancellationToken = default)
+    {
+        IQueryable<Tournament> q = Set;
+        if (!includeUnpublished)
+            q = q.Where(t => t.IsPublished);
+        return await q.OrderBy(t => t.StartDate).ToListAsync(cancellationToken);
+    }
 }
