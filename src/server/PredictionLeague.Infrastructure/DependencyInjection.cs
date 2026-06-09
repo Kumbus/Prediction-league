@@ -93,6 +93,9 @@ public static class DependencyInjection
             o.AddPolicy(AuthorizationPolicies.AdminOnly, p =>
                 p.RequireClaim(AuthorizationPolicies.AdminClaimType)));
 
+        services.Configure<AdminOptions>(config.GetSection(AdminOptions.SectionName));
+        services.AddSingleton<IAdminEmailAllowlist, AdminEmailAllowlist>();
+
         return services;
     }
 

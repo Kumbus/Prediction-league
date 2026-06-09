@@ -17,5 +17,8 @@ public class Tournament
 
     public DateOnly EndDate { get; set; }
 
+    // Visibility gate (FR-003). Drafts hidden from non-admin reads; ingest still works on Drafts.
+    public bool IsPublished { get; set; }
+
     public ICollection<Match> Matches { get; set; } = [];
 }

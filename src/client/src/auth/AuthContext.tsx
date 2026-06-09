@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { ApiError, apiFetch } from "@/lib/api"
 import { AuthContext, type AuthContextValue } from "./auth-context"
@@ -6,13 +6,15 @@ import type { AuthState, AuthUser } from "./types"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", user: null })
-  const probing = useRef(false)
 
+  // No probing.current re-entry guard: in StrictMode the mount effect fires twice and the
+  // cleanup aborts the first probe before the second begins. A boolean guard would short-circuit
+  // the second call before the first's finally clears it, leaving state stuck on "loading".
+  // AbortSignal handles dedup correctly on its own.
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    if (probing.current) return
-    probing.current = true
     try {
       const user = await apiFetch<AuthUser>("/api/auth/me", { signal })
+      if (signal?.aborted) return
       setState({ status: "authenticated", user })
     } catch (err) {
       if (signal?.aborted) return
@@ -22,8 +24,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Auth probe failed", err)
         setState((prev) => ({ status: "error", user: prev.user }))
       }
-    } finally {
-      probing.current = false
     }
   }, [])
 

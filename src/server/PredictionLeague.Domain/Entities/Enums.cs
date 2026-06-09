@@ -32,3 +32,13 @@ public enum ScoringParameter
     CorrectYellowCards,
     CorrectRedCards
 }
+
+// Player field position. Append-only: int ordinals persist — never reorder existing members.
+public enum PlayerPosition
+{
+    Unknown = 0,
+    GK = 1,
+    DEF = 2,
+    MID = 3,
+    FWD = 4
+}
