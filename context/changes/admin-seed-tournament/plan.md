@@ -660,16 +660,16 @@ No test project exists. Verification is build-gated + manual end-to-end, like F-
 
 #### Automated
 
-- [x] 5.1 Type-check + build pass: `npm run build`
-- [x] 5.2 Lint passes: `npm run lint`
+- [x] 5.1 Type-check + build pass: `npm run build` — bb16d68
+- [x] 5.2 Lint passes: `npm run lint` — bb16d68
 
 #### Manual
 
-- [x] 5.3 Non-admin: no Admin link; `/admin/*` redirects to `/app`
-- [x] 5.4 Allowlisted admin: Admin link appears in shell
-- [x] 5.5 Admin Tournament CRUD + Publish toggle: non-admin sees only Published
-- [x] 5.6 Edit form disables `ExternalApiId`
-- [x] 5.7 Delete on tournament with no leagues succeeds; with leagues → 409 message
-- [x] 5.8 Tournament detail Ingest button populates counts + matches/events list (scorer + team)
-- [x] 5.9 Players list paginates; create + edit work; nationality dropdown shows seeded list
-- [x] 5.10 CSV preview → commit flow works; re-upload idempotent; tournamentId binding writes TournamentSquads
+- [x] 5.3 Non-admin: no Admin link; `/admin/*` redirects to `/app` — bb16d68
+- [x] 5.4 Allowlisted admin: Admin link appears in shell — bb16d68
+- [x] 5.5 Admin Tournament CRUD + Publish toggle: non-admin sees only Published — bb16d68
+- [x] 5.6 Edit form disables `ExternalApiId` — bb16d68
+- [x] 5.7 Delete on tournament with no leagues succeeds; with leagues → 409 message — bb16d68
+- [x] 5.8 Tournament detail Ingest button populates counts + matches/events list (scorer + team) — bb16d68
+- [x] 5.9 Players list paginates; create + edit work; nationality dropdown shows seeded list — bb16d68
+- [x] 5.10 CSV preview → commit flow works; re-upload idempotent; tournamentId binding writes TournamentSquads — bb16d68
