@@ -616,33 +616,33 @@ No test project exists. Verification is build-gated + manual end-to-end, like F-
 
 #### Automated
 
-- [x] 2.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 2.2 Existing `POST api/ingest/{tournamentId}` still works against a Draft tournament with admin auth
+- [x] 2.1 Solution builds: `dotnet build src/server/prediction-league.slnx` — 1c151e7
+- [x] 2.2 Existing `POST api/ingest/{tournamentId}` still works against a Draft tournament with admin auth — 1c151e7
 
 #### Manual
 
-- [x] 2.3 Admin CRUD round-trip: POST/GET/PUT/PATCH/DELETE works as specified
-- [x] 2.4 Non-admin sees only Published tournaments and gets 403 on writes
-- [x] 2.5 DELETE on a tournament with leagues returns 409
-- [x] 2.6 `POST /api/ingest/{id}` works in non-Development environment with an admin cookie
+- [x] 2.3 Admin CRUD round-trip: POST/GET/PUT/PATCH/DELETE works as specified — 1c151e7
+- [x] 2.4 Non-admin sees only Published tournaments and gets 403 on writes — 1c151e7
+- [x] 2.5 DELETE on a tournament with leagues returns 409 — 1c151e7
+- [x] 2.6 `POST /api/ingest/{id}` works in non-Development environment with an admin cookie — 1c151e7
 
 ### Phase 3: Player + Nationality API + CSV Bulk Import
 
 #### Automated
 
-- [ ] 3.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [ ] 3.2 `CsvHelper` restores: `dotnet restore`
+- [x] 3.1 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 3.2 `CsvHelper` restores: `dotnet restore`
 
 #### Manual
 
-- [ ] 3.3 `GET /api/nationalities` returns the seeded list (~250 rows)
-- [ ] 3.4 `POST /api/players` creates a player; `PATCH /api/players/{id}` updates only non-null fields
-- [ ] 3.5 CSV `dryRun=true` preview shows correct create/update/conflict counts
-- [ ] 3.6 CSV `dryRun=false` commit: DB matches the preview
-- [ ] 3.7 CSV re-upload is idempotent (no duplicates, no conflicts)
-- [ ] 3.8 Upload with `tournamentId` populates `TournamentSquads` for resolved players
-- [ ] 3.9 Unknown NationalityCode row reported as conflict, not written
-- [ ] 3.10 ExternalPlayerId reused by a different player reported as conflict, not written
+- [x] 3.3 `GET /api/nationalities` returns the seeded list (~250 rows)
+- [x] 3.4 `POST /api/players` creates a player; `PATCH /api/players/{id}` updates only non-null fields
+- [x] 3.5 CSV `dryRun=true` preview shows correct create/update/conflict counts
+- [x] 3.6 CSV `dryRun=false` commit: DB matches the preview
+- [x] 3.7 CSV re-upload is idempotent (no duplicates, no conflicts)
+- [x] 3.8 Upload with `tournamentId` populates `TournamentSquads` for resolved players
+- [x] 3.9 Unknown NationalityCode row reported as conflict, not written
+- [x] 3.10 ExternalPlayerId reused by a different player reported as conflict, not written
 
 ### Phase 4: Tournament Matches Read Endpoint
 

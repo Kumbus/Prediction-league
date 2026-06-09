@@ -9,10 +9,12 @@ using Microsoft.Extensions.Options;
 using Polly;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Application.Abstractions.Persistence;
+using PredictionLeague.Application.Abstractions.Players;
 using PredictionLeague.Infrastructure.Football;
 using PredictionLeague.Infrastructure.Identity;
 using PredictionLeague.Infrastructure.Persistence;
 using PredictionLeague.Infrastructure.Persistence.Repositories;
+using PredictionLeague.Infrastructure.Players;
 
 namespace PredictionLeague.Infrastructure;
 
@@ -36,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<ITeamRepository, TeamRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IMatchEventTypeRepository, MatchEventTypeRepository>();
+        services.AddScoped<INationalityRepository, NationalityRepository>();
+        services.AddScoped<ITournamentSquadRepository, TournamentSquadRepository>();
+        services.AddScoped<IPlayerCsvImporter, CsvHelperPlayerImporter>();
 
         return services;
     }
