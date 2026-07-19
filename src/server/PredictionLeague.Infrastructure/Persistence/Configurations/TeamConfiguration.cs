@@ -13,7 +13,9 @@ public class TeamConfiguration : IEntityTypeConfiguration<Team>
         builder.Property(t => t.Name).IsRequired().HasMaxLength(100);
         builder.Property(t => t.LogoUrl).HasMaxLength(500);
 
-        // External-id upsert key.
-        builder.HasIndex(t => t.ExternalTeamId).IsUnique();
+        // External-id upsert key. Filtered so manual teams (NULL external id) coexist.
+        builder.HasIndex(t => t.ExternalTeamId)
+            .IsUnique()
+            .HasFilter("[ExternalTeamId] IS NOT NULL");
     }
 }

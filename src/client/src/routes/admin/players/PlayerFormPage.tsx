@@ -28,8 +28,12 @@ export function PlayerFormPage() {
 
   useEffect(() => {
     void (async () => {
-      const list = await apiFetch<NationalityResponse[]>("/api/nationalities")
-      setNats(list)
+      try {
+        const list = await apiFetch<NationalityResponse[]>("/api/nationalities")
+        setNats(list)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load nationalities.")
+      }
     })()
   }, [])
 

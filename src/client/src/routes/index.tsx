@@ -10,6 +10,8 @@ import { TournamentDetailPage } from "./admin/tournaments/TournamentDetailPage"
 import { PlayersListPage } from "./admin/players/PlayersListPage"
 import { PlayerFormPage } from "./admin/players/PlayerFormPage"
 import { PlayerImportPage } from "./admin/players/PlayerImportPage"
+import { MatchFormPage } from "./admin/matches/MatchFormPage"
+import { MatchImportPage } from "./admin/matches/MatchImportPage"
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -25,6 +27,9 @@ export const router = createBrowserRouter([
       { path: "/admin/tournaments/new", element: <TournamentFormPage /> },
       { path: "/admin/tournaments/:id", element: <TournamentDetailPage /> },
       { path: "/admin/tournaments/:id/edit", element: <TournamentFormPage /> },
+      { path: "/admin/tournaments/:tournamentId/matches/new", element: <MatchFormPage /> },
+      { path: "/admin/tournaments/:tournamentId/matches/import", element: <MatchImportPage /> },
+      { path: "/admin/matches/:matchId/edit", element: <MatchFormPage /> },
       { path: "/admin/players", element: <PlayersListPage /> },
       { path: "/admin/players/new", element: <PlayerFormPage /> },
       { path: "/admin/players/:id/edit", element: <PlayerFormPage /> },

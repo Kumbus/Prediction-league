@@ -2,6 +2,7 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
+using PredictionLeague.Application.Abstractions;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Players;
 using PredictionLeague.Domain.Entities;
@@ -60,6 +61,21 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
         var nats = await _nationalities.ListAsync(cancellationToken);
         var natByCode = nats.ToDictionary(n => n.Code, n => n, StringComparer.OrdinalIgnoreCase);
 
+        // Pre-load once instead of 2-3 round-trips per row: existing players keyed by their two
+        // natural keys, plus the tournament's current squad. Dictionaries stay live — a player
+        // created earlier in this file is found by later rows, so duplicate rows update in place.
+        var allPlayers = await _players.GetAllAsync(cancellationToken);
+        var byNameNat = new Dictionary<string, Player>();
+        foreach (var p in allPlayers)
+            byNameNat.TryAdd(NameNatKey(p.Name, p.NationalityId), p);
+        var byExtId = new Dictionary<int, Player>();
+        foreach (var p in allPlayers.Where(p => p.ExternalPlayerId != 0))
+            byExtId.TryAdd(p.ExternalPlayerId, p);
+
+        var squadPlayerIds = tournamentId.HasValue
+            ? (await _squads.ListByTournamentAsync(tournamentId.Value, cancellationToken)).Select(s => s.PlayerId).ToHashSet()
+            : new HashSet<Guid>();
+
         var rows = new List<PlayerImportRow>();
         var conflicts = new List<PlayerImportConflict>();
         int squadsAdded = 0;
@@ -88,11 +104,11 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
             var height = ParseInt(raw.HeightCm);
             var ext = ParseInt(raw.ExternalPlayerId);
 
-            var existing = await _players.FindByNameAndNationalityAsync(raw.Name, nationality.Id, cancellationToken);
+            byNameNat.TryGetValue(NameNatKey(raw.Name, nationality.Id), out var existing);
 
-            if (ext.HasValue)
+            if (ext.HasValue && ext.Value != 0)
             {
-                var collidingOwner = await _players.GetByExternalPlayerIdAsync(ext.Value, cancellationToken);
+                var collidingOwner = byExtId.GetValueOrDefault(ext.Value);
                 if (collidingOwner is not null && (existing is null || collidingOwner.Id != existing.Id))
                 {
                     conflicts.Add(new PlayerImportConflict(
@@ -118,6 +134,8 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
                 };
                 action = PlayerImportAction.Create;
                 if (persist) await _players.AddAsync(target, cancellationToken);
+                byNameNat[NameNatKey(target.Name, target.NationalityId)] = target;
+                if (target.ExternalPlayerId != 0) byExtId[target.ExternalPlayerId] = target;
             }
             else
             {
@@ -129,6 +147,7 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
                 if (ext.HasValue) target.ExternalPlayerId = ext.Value;
                 action = PlayerImportAction.Update;
                 if (persist) _players.Update(target);
+                if (target.ExternalPlayerId != 0) byExtId[target.ExternalPlayerId] = target;
             }
 
             rows.Add(new PlayerImportRow(
@@ -136,21 +155,22 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
                 position ?? PlayerPosition.Unknown,
                 dob, height, ext, action));
 
-            if (persist && tournamentId.HasValue)
+            if (tournamentId.HasValue && squadPlayerIds.Add(target.Id))
             {
-                var exists = await _squads.ExistsAsync(tournamentId.Value, target.Id, cancellationToken);
-                if (!exists)
-                {
+                squadsAdded++;
+                if (persist)
                     await _squads.AddAsync(
                         new TournamentSquad { TournamentId = tournamentId.Value, PlayerId = target.Id },
                         cancellationToken);
-                    squadsAdded++;
-                }
             }
         }
 
         return (rows, conflicts, squadsAdded);
     }
+
+    // Natural upsert key for a player: name (case-insensitive) + nationality.
+    private static string NameNatKey(string name, int? nationalityId)
+        => $"{name.Trim().ToLowerInvariant()}|{nationalityId}";
 
     private static List<PlayerCsvRow> ParseCsv(Stream csv)
     {
@@ -163,7 +183,14 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
         };
         using var reader = new StreamReader(csv, leaveOpen: true);
         using var parser = new CsvReader(reader, config);
-        return parser.GetRecords<PlayerCsvRow>().ToList();
+        try
+        {
+            return parser.GetRecords<PlayerCsvRow>().ToList();
+        }
+        catch (Exception ex) when (ex is CsvHelperException or IOException)
+        {
+            throw new CsvImportException("The CSV file could not be parsed. Check the headers and formatting.", ex);
+        }
     }
 
     private static PlayerPosition? ParsePosition(string? raw)

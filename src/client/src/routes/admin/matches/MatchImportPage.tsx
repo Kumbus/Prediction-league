@@ -1,35 +1,21 @@
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { apiFetch } from "@/lib/api"
-import type {
-  PlayerImportPreview,
-  PlayerImportResult,
-  TournamentResponse,
-} from "@/admin/types"
+import type { MatchImportPreview, MatchImportResult } from "@/admin/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 
-export function PlayerImportPage() {
+export function MatchImportPage() {
+  const { tournamentId } = useParams()
   const navigate = useNavigate()
   const [file, setFile] = useState<File | null>(null)
-  const [tournamentId, setTournamentId] = useState<string>("")
-  const [tournaments, setTournaments] = useState<TournamentResponse[]>([])
-  const [preview, setPreview] = useState<PlayerImportPreview | null>(null)
-  const [result, setResult] = useState<PlayerImportResult | null>(null)
+  const [preview, setPreview] = useState<MatchImportPreview | null>(null)
+  const [result, setResult] = useState<MatchImportResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const list = await apiFetch<TournamentResponse[]>("/api/tournaments")
-        setTournaments(list)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load tournaments.")
-      }
-    })()
-  }, [])
+  const detailPath = `/admin/tournaments/${tournamentId}`
 
   const upload = async (dryRun: boolean) => {
     if (!file) {
@@ -41,17 +27,15 @@ export function PlayerImportPage() {
     try {
       const form = new FormData()
       form.append("file", file)
-      const params = new URLSearchParams({ dryRun: String(dryRun) })
-      if (tournamentId) params.set("tournamentId", tournamentId)
-      const res = await apiFetch<PlayerImportPreview | PlayerImportResult>(
-        `/api/players/import?${params.toString()}`,
+      const res = await apiFetch<MatchImportPreview | MatchImportResult>(
+        `/api/tournaments/${tournamentId}/matches/import?dryRun=${dryRun}`,
         { method: "POST", body: form },
       )
       if (dryRun) {
-        setPreview(res as PlayerImportPreview)
+        setPreview(res as MatchImportPreview)
         setResult(null)
       } else {
-        setResult(res as PlayerImportResult)
+        setResult(res as MatchImportResult)
         setPreview(null)
       }
     } catch (err) {
@@ -63,7 +47,7 @@ export function PlayerImportPage() {
 
   return (
     <div className="grid gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Import players (CSV)</h1>
+      <h1 className="text-2xl font-semibold">Import matches (CSV)</h1>
       <Card className="max-w-3xl">
         <CardHeader><CardTitle>Upload</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
@@ -77,22 +61,10 @@ export function PlayerImportPage() {
               className="rounded border border-input bg-background px-3 py-2"
             />
             <p className="text-xs text-muted-foreground">
-              Headers: Name,NationalityCode,Position,DateOfBirth,HeightCm,ExternalPlayerId
+              Headers: HomeTeam,AwayTeam,KickoffUtc,Status,HomeScore,AwayScore,Round.
+              Teams are matched by name and created when missing. KickoffUtc is an ISO timestamp
+              (e.g. 2026-07-20T18:00:00Z).
             </p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="t">Bind to tournament (optional)</Label>
-            <select
-              id="t"
-              className="rounded border border-input bg-background px-3 py-2"
-              value={tournamentId}
-              onChange={(e) => setTournamentId(e.target.value)}
-            >
-              <option value="">— none —</option>
-              {tournaments.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} (S{t.season})</option>
-              ))}
-            </select>
           </div>
           {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
           <div className="flex gap-2">
@@ -102,7 +74,7 @@ export function PlayerImportPage() {
             <Button disabled={busy || !preview} onClick={() => void upload(false)}>
               Commit
             </Button>
-            <Button variant="outline" type="button" onClick={() => navigate("/admin/players")}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => navigate(detailPath)}>Cancel</Button>
           </div>
         </CardContent>
       </Card>
@@ -112,14 +84,15 @@ export function PlayerImportPage() {
           <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-sm">
-              Create: <b>{preview.toCreate}</b> · Update: <b>{preview.toUpdate}</b> · Skipped: <b>{preview.skipped}</b>
+              Create: <b>{preview.toCreate}</b> · Skipped: <b>{preview.skipped}</b> ·
+              New teams: <b>{preview.teamsToCreate}</b>
             </p>
             {preview.conflicts.length > 0 && (
               <div className="grid gap-1">
                 <h3 className="font-semibold text-destructive">Conflicts</h3>
                 <ul className="text-sm">
                   {preview.conflicts.map((c) => (
-                    <li key={c.lineNumber}>Line {c.lineNumber} — {c.name}: {c.reason}</li>
+                    <li key={c.lineNumber}>Line {c.lineNumber}: {c.reason}</li>
                   ))}
                 </ul>
               </div>
@@ -130,18 +103,20 @@ export function PlayerImportPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="p-2 text-left">Line</th>
-                    <th className="p-2 text-left">Name</th>
-                    <th className="p-2 text-left">Nat</th>
-                    <th className="p-2 text-left">Action</th>
+                    <th className="p-2 text-left">Match</th>
+                    <th className="p-2 text-left">Kickoff</th>
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Score</th>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.rows.map((r) => (
                     <tr key={r.lineNumber} className="border-b last:border-b-0">
                       <td className="p-2">{r.lineNumber}</td>
-                      <td className="p-2">{r.name}</td>
-                      <td className="p-2">{r.nationalityCode}</td>
-                      <td className="p-2">{r.action}</td>
+                      <td className="p-2">{r.homeTeam} vs {r.awayTeam}</td>
+                      <td className="p-2">{new Date(r.kickoffUtc).toLocaleString()}</td>
+                      <td className="p-2">{r.status}</td>
+                      <td className="p-2">{r.homeScore ?? "–"} : {r.awayScore ?? "–"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -154,11 +129,14 @@ export function PlayerImportPage() {
       {result && (
         <Card>
           <CardHeader><CardTitle>Commit result</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="grid gap-3">
             <p className="text-sm">
-              Created: <b>{result.created}</b> · Updated: <b>{result.updated}</b> ·
-              Skipped: <b>{result.skipped}</b> · Squads added: <b>{result.squadsAdded}</b>
+              Created: <b>{result.created}</b> · Skipped: <b>{result.skipped}</b> ·
+              Teams created: <b>{result.teamsCreated}</b>
             </p>
+            <Button variant="outline" className="w-fit" onClick={() => navigate(detailPath)}>
+              Back to tournament
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -13,8 +13,11 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.Property(m => m.Round).IsRequired().HasMaxLength(100);
         builder.Property(m => m.Status).HasConversion<int>();
 
-        // Idempotent upsert key — without this every poll duplicates the fixture.
-        builder.HasIndex(m => m.ExternalFixtureId).IsUnique();
+        // Idempotent upsert key — without this every poll duplicates the fixture. Filtered so
+        // multiple manual matches (NULL fixture id) coexist without tripping uniqueness.
+        builder.HasIndex(m => m.ExternalFixtureId)
+            .IsUnique()
+            .HasFilter("[ExternalFixtureId] IS NOT NULL");
 
         // Restrict (not Cascade) on the team FKs to avoid multiple-cascade-path errors:
         // a team is referenced from both home and away.

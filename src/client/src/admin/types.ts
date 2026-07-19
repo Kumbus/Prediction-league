@@ -50,14 +50,65 @@ export interface TeamRefDto {
   score: number | null
 }
 
+export type MatchStatus = "Scheduled" | "Live" | "Finished"
+
 export interface MatchWithEventsDto {
   matchId: string
-  externalFixtureId: number
+  externalFixtureId: number | null
   kickoffUtc: string
-  status: "Scheduled" | "Live" | "Finished"
+  status: MatchStatus
   homeTeam: TeamRefDto
   awayTeam: TeamRefDto
   events: MatchEventDto[]
+}
+
+export interface TeamResponse {
+  id: string
+  name: string
+  externalTeamId: number | null
+  logoUrl: string | null
+}
+
+export interface MatchDetailResponse {
+  id: string
+  tournamentId: string
+  homeTeamId: string
+  awayTeamId: string
+  kickoffUtc: string
+  status: MatchStatus
+  homeScore: number | null
+  awayScore: number | null
+  round: string
+}
+
+export interface MatchImportRow {
+  lineNumber: number
+  homeTeam: string
+  awayTeam: string
+  kickoffUtc: string
+  status: MatchStatus
+  homeScore: number | null
+  awayScore: number | null
+  round: string
+}
+
+export interface MatchImportConflict {
+  lineNumber: number
+  reason: string
+}
+
+export interface MatchImportPreview {
+  toCreate: number
+  skipped: number
+  teamsToCreate: number
+  rows: MatchImportRow[]
+  conflicts: MatchImportConflict[]
+}
+
+export interface MatchImportResult {
+  created: number
+  skipped: number
+  teamsCreated: number
 }
 
 export interface IngestResult {

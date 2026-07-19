@@ -6,7 +6,7 @@ namespace PredictionLeague.Application.Abstractions.Persistence;
 // only; this DTO resolves Team / Player / EventType names via explicit joins.
 public record MatchWithEventsDto(
     Guid MatchId,
-    int ExternalFixtureId,
+    int? ExternalFixtureId,
     DateTimeOffset KickoffUtc,
     MatchStatus Status,
     TeamRefDto HomeTeam,

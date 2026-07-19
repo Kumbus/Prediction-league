@@ -14,8 +14,11 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
 
         builder.Property(p => p.Position).HasConversion<int>();
 
-        // External-id upsert key.
-        builder.HasIndex(p => p.ExternalPlayerId).IsUnique();
+        // External-id upsert key. Filtered on <> 0 so multiple players without an external id
+        // (stored as 0) coexist — otherwise a seed CSV lacking ExternalPlayerId can't import.
+        builder.HasIndex(p => p.ExternalPlayerId)
+            .IsUnique()
+            .HasFilter("[ExternalPlayerId] <> 0");
 
         builder.HasOne<Team>()
             .WithMany()

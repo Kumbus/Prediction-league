@@ -4,6 +4,13 @@
 
 Build the admin surface around the already-shipped F-03 ingest: tournament + player + nationality admin APIs (full CRUD on tournaments, list/create/edit on players, read-only nationalities), CSV bulk player import with dry-run preview, a publish/draft gate that hides in-prep tournaments from non-admins, config-driven admin-email bootstrap, an admin verification page exposing per-match detail (scorers + cards from F-03), and the React admin section that ties it together. Outcome: an admin can sign in, add a tournament, optionally upload a player roster from CSV, click "Ingest now" to pull fixtures + results + events through F-03, verify the data, then publish the tournament — making it visible to S-03 (organizer-creates-league) and downstream slices.
 
+> **Addendum (2026-07-19): manual match entry.** A follow-on slice was folded into this change
+> instead of a separate `admin-manual-matches` change: an admin adds matches by hand (form + CSV
+> import) as the interim data source while paid API-Football ingest is deferred. It makes
+> `Match.ExternalFixtureId` / `Team.ExternalTeamId` nullable (filtered unique indexes), adds a
+> `TeamsController`, match write endpoints + `IMatchCsvImporter` on the server, and match
+> form/import pages on the client. Full detail in `change.md` → Notes → "Manual match entry".
+
 ## Current State Analysis
 
 F-03 (`football-api-ingest`) and F-02 (`auth-oauth-scaffold`) are both in the tree (verified by file inspection, not just roadmap):

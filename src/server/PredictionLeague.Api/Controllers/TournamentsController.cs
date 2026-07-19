@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PredictionLeague.Application.Abstractions;
+using PredictionLeague.Application.Abstractions.Matches;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Domain.Entities;
 using PredictionLeague.Infrastructure.Identity;
@@ -14,18 +16,26 @@ namespace PredictionLeague.Api.Controllers;
 [Authorize]
 public class TournamentsController : ControllerBase
 {
+    private const long CsvSizeCapBytes = 2 * 1024 * 1024;
+
     private readonly ITournamentRepository _tournaments;
     private readonly ILeagueRepository _leagues;
     private readonly IMatchRepository _matches;
+    private readonly ITeamRepository _teams;
+    private readonly IMatchCsvImporter _matchImporter;
 
     public TournamentsController(
         ITournamentRepository tournaments,
         ILeagueRepository leagues,
-        IMatchRepository matches)
+        IMatchRepository matches,
+        ITeamRepository teams,
+        IMatchCsvImporter matchImporter)
     {
         _tournaments = tournaments;
         _leagues = leagues;
         _matches = matches;
+        _teams = teams;
+        _matchImporter = matchImporter;
     }
 
     public record TournamentResponse(
@@ -169,6 +179,178 @@ public class TournamentsController : ControllerBase
         var matches = await _matches.ListByTournamentAsync(id, cancellationToken);
         return Ok(matches);
     }
+
+    // ---- Manual match entry (interim data source while paid ingest is deferred) ----------------
+
+    public record MatchDetailResponse(
+        Guid Id,
+        Guid TournamentId,
+        Guid HomeTeamId,
+        Guid AwayTeamId,
+        DateTimeOffset KickoffUtc,
+        MatchStatus Status,
+        int? HomeScore,
+        int? AwayScore,
+        string Round);
+
+    public record CreateMatchRequest(
+        Guid HomeTeamId,
+        Guid AwayTeamId,
+        DateTimeOffset KickoffUtc,
+        MatchStatus Status,
+        int? HomeScore,
+        int? AwayScore,
+        string? Round);
+
+    public record UpdateMatchRequest(
+        Guid HomeTeamId,
+        Guid AwayTeamId,
+        DateTimeOffset KickoffUtc,
+        MatchStatus Status,
+        int? HomeScore,
+        int? AwayScore,
+        string? Round);
+
+    // POST api/tournaments/{id}/matches — admin enters a match by hand. ExternalFixtureId stays
+    // NULL so it never collides with an ingested fixture.
+    [HttpPost("{id:guid}/matches")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    public async Task<IActionResult> CreateMatch(Guid id, CreateMatchRequest request, CancellationToken cancellationToken)
+    {
+        var tournament = await _tournaments.GetByIdAsync(id, cancellationToken);
+        if (tournament is null) return NotFound();
+
+        var validation = await ValidateMatchAsync(request.HomeTeamId, request.AwayTeamId, request.Status,
+            request.HomeScore, request.AwayScore, cancellationToken);
+        if (validation is not null) return validation;
+
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = id,
+            ExternalFixtureId = null,
+            Season = tournament.Season,
+            Round = string.IsNullOrWhiteSpace(request.Round) ? "Manual" : request.Round.Trim(),
+            HomeTeamId = request.HomeTeamId,
+            AwayTeamId = request.AwayTeamId,
+            KickoffUtc = request.KickoffUtc,
+            Status = request.Status,
+            HomeScore = request.HomeScore,
+            AwayScore = request.AwayScore
+        };
+
+        await _matches.AddAsync(match, cancellationToken);
+        await _matches.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction(nameof(GetMatch), new { matchId = match.Id }, ToMatchResponse(match));
+    }
+
+    // GET api/matches/{matchId} — single match for the edit form (admin only).
+    [HttpGet("/api/matches/{matchId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    public async Task<IActionResult> GetMatch(Guid matchId, CancellationToken cancellationToken)
+    {
+        var match = await _matches.GetByIdAsync(matchId, cancellationToken);
+        return match is null ? NotFound() : Ok(ToMatchResponse(match));
+    }
+
+    // PUT api/matches/{matchId} — edit a match (score/status/kickoff/teams/round).
+    [HttpPut("/api/matches/{matchId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    public async Task<IActionResult> UpdateMatch(Guid matchId, UpdateMatchRequest request, CancellationToken cancellationToken)
+    {
+        var match = await _matches.GetByIdAsync(matchId, cancellationToken);
+        if (match is null) return NotFound();
+
+        var validation = await ValidateMatchAsync(request.HomeTeamId, request.AwayTeamId, request.Status,
+            request.HomeScore, request.AwayScore, cancellationToken);
+        if (validation is not null) return validation;
+
+        match.HomeTeamId = request.HomeTeamId;
+        match.AwayTeamId = request.AwayTeamId;
+        match.KickoffUtc = request.KickoffUtc;
+        match.Status = request.Status;
+        match.HomeScore = request.HomeScore;
+        match.AwayScore = request.AwayScore;
+        if (!string.IsNullOrWhiteSpace(request.Round)) match.Round = request.Round.Trim();
+
+        _matches.Update(match);
+        await _matches.SaveChangesAsync(cancellationToken);
+
+        return Ok(ToMatchResponse(match));
+    }
+
+    // DELETE api/matches/{matchId} — remove a match; EF cascades its events.
+    [HttpDelete("/api/matches/{matchId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    public async Task<IActionResult> DeleteMatch(Guid matchId, CancellationToken cancellationToken)
+    {
+        var match = await _matches.GetByIdAsync(matchId, cancellationToken);
+        if (match is null) return NotFound();
+
+        _matches.Remove(match);
+        await _matches.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
+
+    // POST api/tournaments/{id}/matches/import — bulk manual matches via CSV. dryRun previews;
+    // teams are resolved by name and auto-created. Mirrors the player CSV import flow.
+    [HttpPost("{id:guid}/matches/import")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [RequestSizeLimit(CsvSizeCapBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = CsvSizeCapBytes)]
+    public async Task<IActionResult> ImportMatches(
+        Guid id,
+        IFormFile file,
+        [FromQuery] bool dryRun = true,
+        CancellationToken cancellationToken = default)
+    {
+        var tournament = await _tournaments.GetByIdAsync(id, cancellationToken);
+        if (tournament is null) return NotFound();
+
+        if (file is null || file.Length == 0)
+            return Problem(detail: "CSV file is required.", statusCode: StatusCodes.Status400BadRequest);
+
+        await using var stream = file.OpenReadStream();
+        try
+        {
+            if (dryRun)
+                return Ok(await _matchImporter.PreviewAsync(id, stream, cancellationToken));
+
+            return Ok(await _matchImporter.CommitAsync(id, stream, cancellationToken));
+        }
+        catch (CsvImportException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    // Shared shape checks for create/edit: distinct existing teams; a Finished match needs scores.
+    private async Task<IActionResult?> ValidateMatchAsync(
+        Guid homeTeamId, Guid awayTeamId, MatchStatus status, int? homeScore, int? awayScore,
+        CancellationToken cancellationToken)
+    {
+        if (homeTeamId == awayTeamId)
+            return Problem(detail: "Home and away teams must differ.", statusCode: StatusCodes.Status400BadRequest);
+
+        if (await _teams.GetByIdAsync(homeTeamId, cancellationToken) is null)
+            return Problem(detail: "Home team not found.", statusCode: StatusCodes.Status400BadRequest);
+        if (await _teams.GetByIdAsync(awayTeamId, cancellationToken) is null)
+            return Problem(detail: "Away team not found.", statusCode: StatusCodes.Status400BadRequest);
+
+        if (status == MatchStatus.Finished && (homeScore is null || awayScore is null))
+            return Problem(detail: "A finished match needs both scores.", statusCode: StatusCodes.Status400BadRequest);
+
+        if ((homeScore is < 0) || (awayScore is < 0))
+            return Problem(detail: "Scores cannot be negative.", statusCode: StatusCodes.Status400BadRequest);
+
+        return null;
+    }
+
+    private static MatchDetailResponse ToMatchResponse(Match m)
+        => new(m.Id, m.TournamentId, m.HomeTeamId, m.AwayTeamId, m.KickoffUtc, m.Status,
+            m.HomeScore, m.AwayScore, m.Round);
 
     private bool IsAdmin() => User.HasClaim(AuthorizationPolicies.AdminClaimType, "true");
 

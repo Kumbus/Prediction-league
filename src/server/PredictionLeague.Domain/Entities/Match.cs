@@ -7,8 +7,8 @@ public class Match
 
     public Guid TournamentId { get; set; }
 
-    // API fixture id — idempotent upsert key (FR-004).
-    public int ExternalFixtureId { get; set; }
+    // API fixture id — idempotent upsert key (FR-004). Null for admin-entered manual matches.
+    public int? ExternalFixtureId { get; set; }
 
     // API league.season — needed to re-query the fixture.
     public int Season { get; set; }

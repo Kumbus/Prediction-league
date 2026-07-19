@@ -13,4 +13,10 @@ public class TeamRepository : BaseRepository<Team>, ITeamRepository
 
     public async Task<Team?> GetByExternalTeamIdAsync(int externalTeamId, CancellationToken cancellationToken = default)
         => await Set.FirstOrDefaultAsync(t => t.ExternalTeamId == externalTeamId, cancellationToken);
+
+    public async Task<IReadOnlyList<Team>> ListAsync(CancellationToken cancellationToken = default)
+        => await Set.OrderBy(t => t.Name).ToListAsync(cancellationToken);
+
+    public async Task<Team?> FindByNameAsync(string name, CancellationToken cancellationToken = default)
+        => await Set.FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower(), cancellationToken);
 }

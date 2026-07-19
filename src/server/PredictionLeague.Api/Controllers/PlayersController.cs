@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PredictionLeague.Application.Abstractions;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Players;
 using PredictionLeague.Domain.Entities;
@@ -138,6 +139,13 @@ public class PlayersController : ControllerBase
         var player = await _players.GetByIdAsync(id, cancellationToken);
         if (player is null) return NotFound();
 
+        if (request.ExternalPlayerId.HasValue)
+        {
+            var collision = await _players.GetByExternalPlayerIdAsync(request.ExternalPlayerId.Value, cancellationToken);
+            if (collision is not null && collision.Id != player.Id)
+                return Problem(detail: "ExternalPlayerId is already in use.", statusCode: StatusCodes.Status409Conflict);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Name)) player.Name = request.Name;
         if (request.ExternalPlayerId.HasValue) player.ExternalPlayerId = request.ExternalPlayerId.Value;
         if (request.NationalityId.HasValue) player.NationalityId = request.NationalityId;
@@ -172,14 +180,21 @@ public class PlayersController : ControllerBase
         }
 
         await using var stream = file.OpenReadStream();
-        if (dryRun)
+        try
         {
-            var preview = await _importer.PreviewAsync(stream, tournamentId, cancellationToken);
-            return Ok(preview);
-        }
+            if (dryRun)
+            {
+                var preview = await _importer.PreviewAsync(stream, tournamentId, cancellationToken);
+                return Ok(preview);
+            }
 
-        var result = await _importer.CommitAsync(stream, tournamentId, cancellationToken);
-        return Ok(result);
+            var result = await _importer.CommitAsync(stream, tournamentId, cancellationToken);
+            return Ok(result);
+        }
+        catch (CsvImportException ex)
+        {
+            return Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
     }
 
     private static PlayerResponse ToResponse(Player p)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { apiFetch } from "@/lib/api"
-import type { NationalityResponse, PagedPlayersResponse } from "@/admin/types"
+import type { NationalityResponse, PagedPlayersResponse, TeamResponse } from "@/admin/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,15 +11,25 @@ const PAGE_SIZE = 50
 export function PlayersListPage() {
   const [data, setData] = useState<PagedPlayersResponse | null>(null)
   const [nats, setNats] = useState<Record<number, NationalityResponse>>({})
+  const [teams, setTeams] = useState<Record<string, TeamResponse>>({})
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState("")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     void (async () => {
-      const list = await apiFetch<NationalityResponse[]>("/api/nationalities")
-      setNats(Object.fromEntries(list.map((n) => [n.id, n])))
+      try {
+        const [natList, teamList] = await Promise.all([
+          apiFetch<NationalityResponse[]>("/api/nationalities"),
+          apiFetch<TeamResponse[]>("/api/teams"),
+        ])
+        setNats(Object.fromEntries(natList.map((n) => [n.id, n])))
+        setTeams(Object.fromEntries(teamList.map((t) => [t.id, t])))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load reference data.")
+      }
     })()
   }, [])
 
@@ -32,6 +42,8 @@ export function PlayersListPage() {
           `/api/players?page=${page}&pageSize=${PAGE_SIZE}`,
         )
         setData(res)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load players.")
       } finally {
         setLoading(false)
       }
@@ -58,6 +70,7 @@ export function PlayersListPage() {
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-md"
       />
+      {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -69,6 +82,8 @@ export function PlayersListPage() {
                   <th className="p-3 text-left">Name</th>
                   <th className="p-3 text-left">Nationality</th>
                   <th className="p-3 text-left">Position</th>
+                  <th className="p-3 text-left">Club</th>
+                  <th className="p-3 text-left">National team</th>
                   <th className="p-3"></th>
                 </tr>
               </thead>
@@ -80,6 +95,12 @@ export function PlayersListPage() {
                       {p.nationalityId ? nats[p.nationalityId]?.code ?? "—" : "—"}
                     </td>
                     <td className="p-3">{p.position}</td>
+                    <td className="p-3 text-muted-foreground">
+                      {p.clubTeamId ? teams[p.clubTeamId]?.name ?? "—" : "—"}
+                    </td>
+                    <td className="p-3 text-muted-foreground">
+                      {p.nationalTeamId ? teams[p.nationalTeamId]?.name ?? "—" : "—"}
+                    </td>
                     <td className="p-3 text-right">
                       <Link
                         to={`/admin/players/${p.id}/edit`}

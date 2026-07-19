@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { apiFetch } from "@/lib/api"
 import type {
@@ -21,7 +21,7 @@ export function TournamentDetailPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     if (!id) return
     try {
       const [t, m] = await Promise.all([
@@ -33,12 +33,12 @@ export function TournamentDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load.")
     }
-  }
+  }, [id])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload()
-  }, [id])
+  }, [reload])
 
   const ingest = async () => {
     if (!tournament) return
@@ -71,6 +71,16 @@ export function TournamentDetailPage() {
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Publish failed.")
+    }
+  }
+
+  const deleteMatch = async (matchId: string) => {
+    if (!window.confirm("Delete this match?")) return
+    try {
+      await apiFetch<void>(`/api/matches/${matchId}`, { method: "DELETE" })
+      await reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed.")
     }
   }
 
@@ -140,10 +150,20 @@ export function TournamentDetailPage() {
         </CardContent>
       </Card>
 
-      <h2 className="text-xl font-semibold">Matches ({matches.length})</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Matches ({matches.length})</h2>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate(`/admin/tournaments/${tournament.id}/matches/new`)}>
+            Add match
+          </Button>
+          <Button variant="outline" onClick={() => navigate(`/admin/tournaments/${tournament.id}/matches/import`)}>
+            Import CSV
+          </Button>
+        </div>
+      </div>
       <div className="grid gap-2">
         {matches.length === 0 ? (
-          <p className="text-muted-foreground">No matches ingested.</p>
+          <p className="text-muted-foreground">No matches yet — add one manually or import a CSV.</p>
         ) : (
           matches.map((m) => (
             <Card key={m.matchId}>
@@ -157,6 +177,20 @@ export function TournamentDetailPage() {
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <span>{new Date(m.kickoffUtc).toLocaleString()}</span>
                   <Badge variant="secondary">{m.status}</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/matches/${m.matchId}/edit`) }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); void deleteMatch(m.matchId) }}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardHeader>
               {expanded.has(m.matchId) && (

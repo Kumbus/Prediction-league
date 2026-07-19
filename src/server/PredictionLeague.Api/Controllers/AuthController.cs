@@ -181,15 +181,17 @@ public class AuthController : ControllerBase
         return Redirect(target);
     }
 
-    // If the user's email is in the Admin:Emails allowlist, flip IsGlobalAdmin and refresh the
-    // sign-in cookie so the admin claim is re-emitted by AppUserClaimsPrincipalFactory in the
-    // current session. Idempotent: a user already flagged is left alone.
+    // Reconcile IsGlobalAdmin with the Admin:Emails allowlist on every sign-in: promote when the
+    // email is listed, revoke when it isn't. Refresh the sign-in cookie so the admin claim is
+    // re-emitted by AppUserClaimsPrincipalFactory in the current session. Idempotent: a user
+    // already in the correct state is left alone.
     private async Task EnsureAdminClaimAsync(ApplicationUser user)
     {
-        if (!_adminAllowlist.IsAdmin(user.Email) || user.IsGlobalAdmin)
+        var shouldBeAdmin = _adminAllowlist.IsAdmin(user.Email);
+        if (shouldBeAdmin == user.IsGlobalAdmin)
             return;
 
-        user.IsGlobalAdmin = true;
+        user.IsGlobalAdmin = shouldBeAdmin;
         var updated = await _userManager.UpdateAsync(user);
         if (!updated.Succeeded)
             return;
