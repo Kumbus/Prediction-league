@@ -218,7 +218,7 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("AwayTeamId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("ExternalFixtureId")
+                    b.Property<int?>("ExternalFixtureId")
                         .HasColumnType("int");
 
                     b.Property<int?>("HomeScore")
@@ -249,7 +249,8 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.HasIndex("AwayTeamId");
 
                     b.HasIndex("ExternalFixtureId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ExternalFixtureId] IS NOT NULL");
 
                     b.HasIndex("HomeTeamId");
 
@@ -368,6 +369,32 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PredictionLeague.Domain.Entities.Nationality", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Nationalities");
+                });
+
             modelBuilder.Entity("PredictionLeague.Domain.Entities.Player", b =>
                 {
                     b.Property<Guid>("Id")
@@ -377,7 +404,13 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ClubTeamId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
                     b.Property<int>("ExternalPlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HeightCm")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -388,14 +421,23 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("NationalTeamId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("NationalityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClubTeamId");
 
                     b.HasIndex("ExternalPlayerId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ExternalPlayerId] <> 0");
 
                     b.HasIndex("NationalTeamId");
+
+                    b.HasIndex("NationalityId");
 
                     b.ToTable("Players");
                 });
@@ -429,7 +471,7 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("ExternalTeamId")
+                    b.Property<int?>("ExternalTeamId")
                         .HasColumnType("int");
 
                     b.Property<string>("LogoUrl")
@@ -444,7 +486,8 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ExternalTeamId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ExternalTeamId] IS NOT NULL");
 
                     b.ToTable("Teams");
                 });
@@ -462,6 +505,9 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -475,7 +521,26 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalApiId")
+                        .IsUnique()
+                        .HasFilter("[ExternalApiId] IS NOT NULL");
+
                     b.ToTable("Tournaments");
+                });
+
+            modelBuilder.Entity("PredictionLeague.Domain.Entities.TournamentSquad", b =>
+                {
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("TournamentId", "PlayerId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("TournamentSquads");
                 });
 
             modelBuilder.Entity("PredictionLeague.Infrastructure.Identity.ApplicationUser", b =>
@@ -671,6 +736,11 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("NationalTeamId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PredictionLeague.Domain.Entities.Nationality", null)
+                        .WithMany()
+                        .HasForeignKey("NationalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("PredictionLeague.Domain.Entities.ScoringRule", b =>
@@ -678,6 +748,21 @@ namespace PredictionLeague.Infrastructure.Persistence.Migrations
                     b.HasOne("PredictionLeague.Domain.Entities.League", null)
                         .WithMany("ScoringRules")
                         .HasForeignKey("LeagueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PredictionLeague.Domain.Entities.TournamentSquad", b =>
+                {
+                    b.HasOne("PredictionLeague.Domain.Entities.Player", null)
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PredictionLeague.Domain.Entities.Tournament", null)
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

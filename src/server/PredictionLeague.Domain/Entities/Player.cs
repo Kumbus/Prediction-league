@@ -15,4 +15,12 @@ public class Player
     public Guid? ClubTeamId { get; set; }
 
     public Guid? NationalTeamId { get; set; }
+
+    public DateOnly? DateOfBirth { get; set; }
+
+    public PlayerPosition Position { get; set; } = PlayerPosition.Unknown;
+
+    public int? HeightCm { get; set; }
+
+    public int? NationalityId { get; set; }
 }

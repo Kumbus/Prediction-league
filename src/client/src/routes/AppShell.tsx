@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { SignOutButton } from "@/auth/SignOutButton"
 import { useAuth } from "@/auth/useAuth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +13,11 @@ export function AppShell() {
           ⚽ Prediction League
         </span>
         <div className="flex items-center gap-4">
+          {user?.isGlobalAdmin && (
+            <Link to="/admin/tournaments" className="text-sm text-primary hover:underline">
+              Admin
+            </Link>
+          )}
           <span className="text-sm text-muted-foreground">{user?.displayName}</span>
           <SignOutButton />
         </div>

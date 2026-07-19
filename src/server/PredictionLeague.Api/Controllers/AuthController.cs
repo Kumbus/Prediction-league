@@ -21,17 +21,20 @@ public class AuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly SpaCorsOptions _corsOptions;
+    private readonly IAdminEmailAllowlist _adminAllowlist;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IAuthenticationSchemeProvider schemeProvider,
-        IOptions<SpaCorsOptions> corsOptions)
+        IOptions<SpaCorsOptions> corsOptions,
+        IAdminEmailAllowlist adminAllowlist)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _schemeProvider = schemeProvider;
         _corsOptions = corsOptions.Value;
+        _adminAllowlist = adminAllowlist;
     }
 
     public record RegisterRequest(string Email, string Password, string DisplayName);
@@ -59,6 +62,7 @@ public class AuthController : ControllerBase
         }
 
         await _signInManager.SignInAsync(user, isPersistent: false);
+        await EnsureAdminClaimAsync(user);
         return Ok();
     }
 
@@ -71,6 +75,10 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
             return Unauthorized();
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is not null)
+            await EnsureAdminClaimAsync(user);
 
         return Ok();
     }
@@ -134,7 +142,12 @@ public class AuthController : ControllerBase
         var signIn = await _signInManager.ExternalLoginSignInAsync(
             info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
         if (signIn.Succeeded)
+        {
+            var linkedUser = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+            if (linkedUser is not null)
+                await EnsureAdminClaimAsync(linkedUser);
             return Redirect(target);
+        }
 
         // First login — create the local user from Google claims and persist the login link.
         var email = info.Principal.FindFirstValue(ClaimTypes.Email);
@@ -164,7 +177,26 @@ public class AuthController : ControllerBase
             return Redirect(AppendError(target, "link_failed"));
 
         await _signInManager.SignInAsync(user, isPersistent: false);
+        await EnsureAdminClaimAsync(user);
         return Redirect(target);
+    }
+
+    // Reconcile IsGlobalAdmin with the Admin:Emails allowlist on every sign-in: promote when the
+    // email is listed, revoke when it isn't. Refresh the sign-in cookie so the admin claim is
+    // re-emitted by AppUserClaimsPrincipalFactory in the current session. Idempotent: a user
+    // already in the correct state is left alone.
+    private async Task EnsureAdminClaimAsync(ApplicationUser user)
+    {
+        var shouldBeAdmin = _adminAllowlist.IsAdmin(user.Email);
+        if (shouldBeAdmin == user.IsGlobalAdmin)
+            return;
+
+        user.IsGlobalAdmin = shouldBeAdmin;
+        var updated = await _userManager.UpdateAsync(user);
+        if (!updated.Succeeded)
+            return;
+
+        await _signInManager.RefreshSignInAsync(user);
     }
 
     // Open-redirect guard: only bounce back to a same-origin local path or a configured SPA

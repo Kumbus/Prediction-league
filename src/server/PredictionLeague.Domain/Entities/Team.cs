@@ -6,8 +6,9 @@ public class Team
 {
     public Guid Id { get; set; }
 
-    // Identifier of this team in the external football data API (team.id).
-    public int ExternalTeamId { get; set; }
+    // Identifier of this team in the external football data API (team.id). Null for
+    // admin-created manual teams that never came through ingest.
+    public int? ExternalTeamId { get; set; }
 
     public required string Name { get; set; }
 
