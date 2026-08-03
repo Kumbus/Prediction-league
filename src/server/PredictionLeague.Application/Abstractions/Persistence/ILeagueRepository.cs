@@ -20,4 +20,9 @@ public interface ILeagueRepository : IRepository<League>
 
     // Pre-insert probe for the invite-code generator. The unique index is the real guarantee.
     Task<bool> InviteCodeExistsAsync(string inviteCode, CancellationToken cancellationToken = default);
+
+    // Persists a new league with its scoring rules and memberships as one unit. Throws
+    // InviteCodeCollisionException when the unique index rejects the invite code, so the caller
+    // can retry with a fresh one without depending on EF Core's exception types.
+    Task CreateAsync(League league, CancellationToken cancellationToken = default);
 }

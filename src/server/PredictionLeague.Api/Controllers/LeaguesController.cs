@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PredictionLeague.Application.Abstractions.Leagues;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Domain.Entities;
@@ -111,12 +110,14 @@ public class LeaguesController : ControllerBase
         if (name.Length > MaxNameLength)
             return Problem(detail: $"Name must be {MaxNameLength} characters or fewer.", statusCode: StatusCodes.Status400BadRequest);
 
+        // Publishing is what makes a tournament leaguable — admins get the same rule. Missing and
+        // unpublished share one message so a draft's existence does not leak, mirroring the
+        // 404-masking rule at TournamentsController.cs:79.
         var tournament = await _tournaments.GetByIdAsync(request.TournamentId, cancellationToken);
-        if (tournament is null)
-            return Problem(detail: "Tournament not found.", statusCode: StatusCodes.Status400BadRequest);
-        // Publishing is what makes a tournament leaguable — admins get the same rule.
-        if (!tournament.IsPublished)
-            return Problem(detail: "Tournament is not published.", statusCode: StatusCodes.Status400BadRequest);
+        if (tournament is null || !tournament.IsPublished)
+            return Problem(
+                detail: "Tournament not found or not published.",
+                statusCode: StatusCodes.Status400BadRequest);
 
         var rulesValidation = ValidateScoringRules(request.ScoringRules);
         if (rulesValidation is not null) return rulesValidation;
@@ -150,23 +151,21 @@ public class LeaguesController : ControllerBase
             ]
         };
 
-        await _leagues.AddAsync(league, cancellationToken);
-
         try
         {
-            await _leagues.SaveChangesAsync(cancellationToken);
+            await _leagues.CreateAsync(league, cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (InviteCodeCollisionException)
         {
             // The generator's pre-check is racy by construction — the unique index on InviteCode
             // is the real guarantee. Re-code the still-tracked league and save once more; the
-            // insert is retried whole. A second failure is not a collision worth chasing.
+            // insert is retried whole. A second collision is not worth chasing.
             try
             {
                 league.InviteCode = await _inviteCodes.GenerateAsync(cancellationToken);
-                await _leagues.SaveChangesAsync(cancellationToken);
+                await _leagues.CreateAsync(league, cancellationToken);
             }
-            catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException)
+            catch (Exception ex) when (ex is InviteCodeCollisionException or InvalidOperationException)
             {
                 return Problem(
                     detail: "Could not create the league right now. Please try again.",

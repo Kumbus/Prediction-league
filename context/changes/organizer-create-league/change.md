@@ -1,7 +1,7 @@
 ---
 change_id: organizer-create-league
 title: Organizer creates a league tied to a seeded tournament (S-03)
-status: implementing
+status: impl_reviewed
 created: 2026-08-03
 updated: 2026-08-03
 archived_at: null
