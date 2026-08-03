@@ -328,31 +328,31 @@ None. Every column already exists in `20260530155119_InitialCreate`; the
 
 #### Automated
 
-- [x] 1.1 Server builds: `dotnet build`
-- [x] 1.2 No schema drift: `dotnet ef migrations has-pending-model-changes`
+- [x] 1.1 Server builds: `dotnet build` — 11a3454
+- [x] 1.2 No schema drift: `dotnet ef migrations has-pending-model-changes` — 11a3454
 
 #### Manual
 
-- [ ] 1.3 POST /api/leagues returns 201 with an 8-character invite code
-- [ ] 1.4 SQL: 6 ScoringRules rows + 1 LeagueMemberships row with Role = 0
-- [ ] 1.5 Two creates produce different invite codes
-- [ ] 1.6 POST against a draft tournament returns 400
-- [ ] 1.7 GET /api/leagues is caller-scoped
-- [ ] 1.8 GET /api/leagues/{id} as a non-member returns 404
-- [ ] 1.9 Anonymous calls return 401
+- [x] 1.3 POST /api/leagues returns 201 with an 8-character invite code
+- [x] 1.4 SQL: 6 ScoringRules rows + 1 LeagueMemberships row with Role = 0
+- [x] 1.5 Two creates produce different invite codes
+- [x] 1.6 POST against a draft tournament returns 400
+- [x] 1.7 GET /api/leagues is caller-scoped
+- [x] 1.8 GET /api/leagues/{id} as a non-member returns 404
+- [x] 1.9 Anonymous calls return 401
 
 ### Phase 2: Client — league screens
 
 #### Automated
 
-- [ ] 2.1 Client builds: `npm run build`
-- [ ] 2.2 Lint passes: `npm run lint`
+- [x] 2.1 Client builds: `npm run build`
+- [x] 2.2 Lint passes: `npm run lint`
 
 #### Manual
 
-- [ ] 2.3 Create a league end-to-end from /app
-- [ ] 2.4 Scoring fields prefilled and persisted as edited
-- [ ] 2.5 Tournament dropdown lists only published tournaments
-- [ ] 2.6 Invite code visible with working copy button
-- [ ] 2.7 List survives reload and is not visible to another user
-- [ ] 2.8 Empty name surfaces the server message inline
+- [x] 2.3 Create a league end-to-end from /app
+- [x] 2.4 Scoring fields prefilled and persisted as edited
+- [x] 2.5 Tournament dropdown lists only published tournaments
+- [x] 2.6 Invite code visible with working copy button
+- [x] 2.7 List survives reload and is not visible to another user
+- [x] 2.8 Empty name surfaces the server message inline
