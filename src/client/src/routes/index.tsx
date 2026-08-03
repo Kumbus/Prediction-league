@@ -12,13 +12,21 @@ import { PlayerFormPage } from "./admin/players/PlayerFormPage"
 import { PlayerImportPage } from "./admin/players/PlayerImportPage"
 import { MatchFormPage } from "./admin/matches/MatchFormPage"
 import { MatchImportPage } from "./admin/matches/MatchImportPage"
+import { LeaguesListPage } from "./leagues/LeaguesListPage"
+import { LeagueFormPage } from "./leagues/LeagueFormPage"
+import { LeagueDetailPage } from "./leagues/LeagueDetailPage"
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
   { path: "/sign-in", element: <SignInPage /> },
   {
     element: <RequireAuth />,
-    children: [{ path: "/app", element: <AppShell /> }],
+    children: [
+      { path: "/app", element: <AppShell /> },
+      { path: "/app/leagues", element: <LeaguesListPage /> },
+      { path: "/app/leagues/new", element: <LeagueFormPage /> },
+      { path: "/app/leagues/:id", element: <LeagueDetailPage /> },
+    ],
   },
   {
     element: <RequireAdmin />,

@@ -3,7 +3,7 @@ project: "Football Match Prediction App"
 version: 1
 status: draft
 created: 2026-05-28
-updated: 2026-06-04
+updated: 2026-08-03
 prd_version: 1
 main_goal: speed
 top_blocker: external
@@ -30,11 +30,11 @@ Free football prediction games today only run on official organizer sites for th
 | ID    | Change ID                  | Outcome (user can …)                                                        | Prerequisites      | PRD refs                  | Status   |
 | ----- | -------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------- | -------- |
 | F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | done     |
-| F-02  | auth-oauth-scaffold        | (foundation) OAuth sign-in scaffold + identity issuing/verification wired    | —                  | FR-001, Access Control    | ready    |
-| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | ready    |
+| F-02  | auth-oauth-scaffold        | (foundation) OAuth sign-in scaffold + identity issuing/verification wired    | —                  | FR-001, Access Control    | done     |
+| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | done     |
 | F-04  | walking-skeleton-deploy     | (foundation) app + Azure SQL deployed end-to-end; first prod migration applied (auto-migrate from CI — conscious deviation, see infrastructure-v2.md 2026-06-08 note) | F-01, F-02         | NFR-freshness, infra-v2   | done     |
-| S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | proposed |
-| S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | proposed |
+| S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | done     |
+| S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | done     |
 | S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | proposed |
 | S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | proposed |
 | S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | proposed |
@@ -76,7 +76,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because the current store is throwaway and every slice writes through this layer. Scope risk: do NOT pre-build the whole schema here — establish the layered skeleton, persistence wiring, and only the entities S-02/S-03 exercise; later slices add their own migrations.
-- **Status:** done (2026-05-31) — implemented + impl-reviewed; see `context/changes/layered-backend-persistence/`
+- **Status:** done
 
 ### F-02: OAuth sign-in scaffold
 
@@ -90,7 +90,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - Allow an alternative sign-in if a member lacks the chosen OAuth provider? — Owner: user. Block: no.
 - **Risk:** Sequenced early because organizer/member roles gate almost every slice. Minimal scaffold only (one provider, e.g. Google); role model and provider-coverage refinement stay light to protect the deadline.
-- **Status:** ready
+- **Status:** done
 
 ### F-03: Football data API ingest
 
@@ -104,7 +104,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - ~~Which API source covers fixtures + results + goal scorers + cards within budget?~~ RESOLVED — API-Football free tier; `Events` endpoint carries goals + cards at €0 (OQ #1).
 - **Risk:** Was the #1 roadmap blocker; source now chosen so ingest can be built and granular scoring (FR-005) is viable at €0. New constraint: **free tier caps 100 req/day** — ingest must be poll-frugal (timer fires in match windows only) + cache hard (persist fixtures/results, pull events once per match after FT); live/15s polling is out of scope v1. Read rate-limit response headers and back off. Path if 100/day pinches: cache harder → $19 Pro (7,500/day, identical shapes) → role-split fallback (see `api-research.md`).
-- **Status:** ready
+- **Status:** done
 
 ### F-04: Walking-skeleton Azure deploy
 
@@ -117,7 +117,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Closes the roadmap gap where S-01 assumed a "deployed shape" that nothing provisioned. Keep it thin — App Service F1 + Azure SQL Basic + manual GitHub Actions promotion per infra-v2; no observability investment (`main_goal: speed`). Prod migrations stay forward-only + human-gated; never auto-migrate prod.
-- **Status:** proposed
+- **Status:** done
 
 ## Slices
 
@@ -131,7 +131,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Thin slice exercising F-02 end-to-end. Low risk; mainly confirms the OAuth round-trip and session work in the deployed shape — which F-04 now provisions.
-- **Status:** proposed
+- **Status:** done
 
 ### S-02: Admin seeds a tournament with match data
 
@@ -144,7 +144,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - ~~If scorer/card detail is unavailable at the chosen API tier, is final-score-only scoring acceptable for v1?~~ RESOLVED — no degrade needed; API-Football free `Events` carries scorers + cards at €0 (OQ #2). S-02 keeps full granular detail.
 - **Risk:** Gates the whole loop — no seeded matches means nothing to predict or score. External-API decision resolved; granular scoring confirmed viable, so S-04 scoring rules can be designed against full scorer/card detail.
-- **Status:** proposed
+- **Status:** done
 
 ### S-03: Organizer creates a league
 
@@ -244,4 +244,9 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Done
 
-(Empty on first generation. `/10x-archive` appends entries here when a change whose Change ID matches a roadmap item is archived.)
+- **F-01: (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place** — Archived 2026-08-03 → `context/archive/2026-05-28-layered-backend-persistence/`. Lesson: —.
+- **F-02: (foundation) OAuth sign-in scaffold + identity issuing/verification wired** — Archived 2026-08-03 → `context/archive/2026-06-07-auth-oauth-scaffold/`. Lesson: —.
+- **F-03: (foundation) football data API client + scheduled ingest of fixtures/results** — Archived 2026-08-03 → `context/archive/2026-06-04-football-api-ingest/`. Lesson: 3 manual verification steps (4.2, 4.3, 5.4) left open — API-Football free tier can't fetch current-season fixtures; revisit if the $19 Pro tier is bought.
+- **F-04: (foundation) app + Azure SQL deployed end-to-end; first prod migration applied** — Archived 2026-08-03 → `context/archive/2026-06-07-walking-skeleton-deploy/`. Lesson: —.
+- **S-01: sign in via OAuth and land in the authenticated app** — Archived 2026-08-03 → `context/archive/2026-06-08-user-sign-in/`. Lesson: —.
+- **S-02: (admin) add a tournament and have its fixtures + per-match detail ingested** — Archived 2026-08-03 → `context/archive/2026-06-08-admin-seed-tournament/`. Lesson: manual match entry (form + CSV) folded in as interim data source while paid API-Football ingest is deferred.

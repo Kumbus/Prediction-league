@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { SignOutButton } from "@/auth/SignOutButton"
 import { useAuth } from "@/auth/useAuth"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function AppShell() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -27,8 +29,11 @@ export function AppShell() {
           <CardHeader>
             <CardTitle>You&apos;re signed in</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">League creation arrives in S-03.</p>
+          <CardContent className="grid gap-4">
+            <p className="text-muted-foreground">
+              Create a league for a tournament and invite your friends.
+            </p>
+            <Button onClick={() => navigate("/app/leagues")}>My leagues</Button>
           </CardContent>
         </Card>
       </main>

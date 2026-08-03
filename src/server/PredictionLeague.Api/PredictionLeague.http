@@ -4,3 +4,41 @@ GET {{PredictionLeague_HostAddress}}/health/db
 Accept: text/plain
 
 ###
+
+### Leagues (S-03)
+# All three require the Identity auth cookie — sign in first via api/auth. Anonymous calls
+# return 401. TournamentId must be a *published* tournament (GET api/tournaments lists them).
+
+@LeagueId = 00000000-0000-0000-0000-000000000000
+@TournamentId = 00000000-0000-0000-0000-000000000000
+
+# Create a league. All six ScoringParameter members must appear exactly once; Points are 0..1000.
+POST {{PredictionLeague_HostAddress}}/api/leagues
+Content-Type: application/json
+
+{
+  "name": "Friday Night Pool",
+  "tournamentId": "{{TournamentId}}",
+  "scoringRules": [
+    { "parameter": "ExactScore", "points": 3 },
+    { "parameter": "CorrectOutcome", "points": 1 },
+    { "parameter": "CorrectGoalScorer", "points": 2 },
+    { "parameter": "CorrectCardCount", "points": 0 },
+    { "parameter": "CorrectYellowCards", "points": 0 },
+    { "parameter": "CorrectRedCards", "points": 0 }
+  ]
+}
+
+###
+
+# Leagues the caller organizes or belongs to.
+GET {{PredictionLeague_HostAddress}}/api/leagues
+Accept: application/json
+
+###
+
+# League detail with invite code + scoring rules. 404 when the caller is not organizer or member.
+GET {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}
+Accept: application/json
+
+###

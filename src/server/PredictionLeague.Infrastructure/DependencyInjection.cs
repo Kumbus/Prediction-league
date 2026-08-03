@@ -8,11 +8,13 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
 using PredictionLeague.Application.Abstractions.Football;
+using PredictionLeague.Application.Abstractions.Leagues;
 using PredictionLeague.Application.Abstractions.Matches;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Players;
 using PredictionLeague.Infrastructure.Football;
 using PredictionLeague.Infrastructure.Identity;
+using PredictionLeague.Infrastructure.Leagues;
 using PredictionLeague.Infrastructure.Persistence;
 using PredictionLeague.Infrastructure.Matches;
 using PredictionLeague.Infrastructure.Persistence.Repositories;
@@ -44,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<ITournamentSquadRepository, TournamentSquadRepository>();
         services.AddScoped<IPlayerCsvImporter, CsvHelperPlayerImporter>();
         services.AddScoped<IMatchCsvImporter, CsvHelperMatchImporter>();
+        services.AddScoped<IInviteCodeGenerator, RandomInviteCodeGenerator>();
 
         return services;
     }

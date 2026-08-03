@@ -1,10 +1,10 @@
 ---
 change_id: admin-seed-tournament
 title: Admin seeds tournament with ingested match data
-status: impl_reviewed
+status: archived
 created: 2026-06-08
-updated: 2026-07-19
-archived_at: null
+updated: 2026-08-03
+archived_at: 2026-08-03T17:04:13Z
 ---
 
 ## Notes
