@@ -41,4 +41,7 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    public async Task<bool> AnyKickedOffAsync(Guid tournamentId, DateTimeOffset asOf, CancellationToken cancellationToken = default)
+        => await Set.AnyAsync(m => m.TournamentId == tournamentId && m.KickoffUtc <= asOf, cancellationToken);
 }

@@ -7,7 +7,7 @@ using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Api.Controllers;
 
-// League create/list/detail for the signed-in organizer (FR-006, FR-008 partial, US-01).
+// League create/list/detail plus organizer-only scoring-rule editing (FR-006, FR-008, US-01).
 // Roles are per-league via LeagueMembership, not a global policy, so visibility is checked
 // inline: a caller who is neither organizer nor member gets 404, mirroring the draft-tournament
 // rule in TournamentsController (no information leak).
@@ -17,20 +17,24 @@ namespace PredictionLeague.Api.Controllers;
 public class LeaguesController : ControllerBase
 {
     private const int MaxNameLength = 200;
+    private const int MinPointsPerRule = 1;
     private const int MaxPointsPerRule = 1000;
 
     private readonly ILeagueRepository _leagues;
     private readonly ITournamentRepository _tournaments;
     private readonly IInviteCodeGenerator _inviteCodes;
+    private readonly IMatchRepository _matches;
 
     public LeaguesController(
         ILeagueRepository leagues,
         ITournamentRepository tournaments,
-        IInviteCodeGenerator inviteCodes)
+        IInviteCodeGenerator inviteCodes,
+        IMatchRepository matches)
     {
         _leagues = leagues;
         _tournaments = tournaments;
         _inviteCodes = inviteCodes;
+        _matches = matches;
     }
 
     public record ScoringRuleDto(ScoringParameter Parameter, int Points);
@@ -39,6 +43,8 @@ public class LeaguesController : ControllerBase
         string Name,
         Guid TournamentId,
         IReadOnlyList<ScoringRuleDto> ScoringRules);
+
+    public record UpdateScoringRulesRequest(IReadOnlyList<ScoringRuleDto> ScoringRules);
 
     public record LeagueSummaryResponse(
         Guid Id,
@@ -55,6 +61,9 @@ public class LeaguesController : ControllerBase
         string TournamentName,
         string InviteCode,
         bool IsOrganizer,
+        // Scoring is frozen once the tournament's first match has kicked off, so the client can
+        // hide the edit affordance instead of discovering the rule via a failed request.
+        bool IsScoringLocked,
         int MemberCount,
         IReadOnlyList<ScoringRuleDto> ScoringRules);
 
@@ -93,10 +102,11 @@ public class LeaguesController : ControllerBase
             return NotFound();
 
         var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
-        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId));
+        var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked));
     }
 
-    // POST api/leagues — the league, its full scoring config, and the organizer's membership are
+    // POST api/leagues — the league, its selected scoring rules, and the organizer's membership are
     // one transactional unit: a single SaveChangesAsync, so a failure can never leave a league
     // without its rules or its organizer.
     [HttpPost]
@@ -176,40 +186,89 @@ public class LeaguesController : ControllerBase
         return CreatedAtAction(
             nameof(Get),
             new { id = league.Id },
-            ToDetailResponse(league, tournament.Name, userId));
+            ToDetailResponse(
+                league,
+                tournament.Name,
+                userId,
+                await IsScoringLockedAsync(league.TournamentId, cancellationToken)));
     }
 
-    // Every ScoringParameter member must appear exactly once — unknown or duplicated parameters
-    // are rejected rather than silently dropped, so a league's config is always complete.
+    // PUT api/leagues/{id}/scoring-rules — the organizer replaces the league's scoring config
+    // (FR-008). Returns the refreshed detail so the client re-renders from the server's own view.
+    // 404 masks a league the caller cannot see at all; a member who *can* see it gets a plain 403,
+    // because masking a legitimate visibility as "not found" would be a lie.
+    [HttpPut("{id:guid}/scoring-rules")]
+    public async Task<IActionResult> UpdateScoringRules(
+        Guid id,
+        UpdateScoringRulesRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (CurrentUserId() is not { } userId) return Unauthorized();
+
+        var league = await _leagues.GetForUpdateAsync(id, cancellationToken);
+        if (league is null) return NotFound();
+
+        var isOrganizer = league.OrganizerUserId == userId;
+        if (!isOrganizer && league.Memberships.All(m => m.UserId != userId))
+            return NotFound();
+        if (!isOrganizer)
+            return Problem(
+                detail: "Only the league organizer can change the scoring rules.",
+                statusCode: StatusCodes.Status403Forbidden);
+
+        // A state conflict, not malformed input — retuning points against known results is what
+        // the freeze exists to prevent.
+        var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);
+        if (isScoringLocked)
+            return Problem(
+                detail: "Scoring rules are locked once the tournament has started.",
+                statusCode: StatusCodes.Status409Conflict);
+
+        var rulesValidation = ValidateScoringRules(request.ScoringRules);
+        if (rulesValidation is not null) return rulesValidation;
+
+        var rules = request.ScoringRules
+            .Select(r => new ScoringRule { Parameter = r.Parameter, Points = r.Points })
+            .ToList();
+
+        await _leagues.ReplaceScoringRulesAsync(league, rules, cancellationToken);
+
+        var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked));
+    }
+
+    // The rule set is *selectable*: a league scores only the parameters it lists. The invariant
+    // guarded here is non-empty and distinct — not complete. A parameter that does not score is
+    // left out; Points = 0 is no longer a way to say it, so the floor is 1. Shared by Create and
+    // UpdateScoringRules so the two routes cannot drift.
     private IActionResult? ValidateScoringRules(IReadOnlyList<ScoringRuleDto>? rules)
     {
-        var expected = Enum.GetValues<ScoringParameter>();
-
         if (rules is null || rules.Count == 0)
-            return Problem(detail: "Scoring rules are required.", statusCode: StatusCodes.Status400BadRequest);
+            return Problem(detail: "At least one scoring rule is required.", statusCode: StatusCodes.Status400BadRequest);
 
         foreach (var rule in rules)
         {
             if (!Enum.IsDefined(rule.Parameter))
                 return Problem(detail: $"Unknown scoring parameter '{rule.Parameter}'.", statusCode: StatusCodes.Status400BadRequest);
-            // Zero is legal and means "this parameter does not score".
-            if (rule.Points < 0 || rule.Points > MaxPointsPerRule)
-                return Problem(detail: $"Points must be between 0 and {MaxPointsPerRule}.", statusCode: StatusCodes.Status400BadRequest);
+            if (rule.Points < MinPointsPerRule || rule.Points > MaxPointsPerRule)
+                return Problem(detail: $"Points must be between {MinPointsPerRule} and {MaxPointsPerRule}.", statusCode: StatusCodes.Status400BadRequest);
         }
 
         if (rules.Select(r => r.Parameter).Distinct().Count() != rules.Count)
             return Problem(detail: "Each scoring parameter may appear only once.", statusCode: StatusCodes.Status400BadRequest);
 
-        var missing = expected.Except(rules.Select(r => r.Parameter)).ToList();
-        if (missing.Count > 0)
-            return Problem(
-                detail: $"Missing scoring parameter(s): {string.Join(", ", missing)}.",
-                statusCode: StatusCodes.Status400BadRequest);
-
         return null;
     }
 
-    private static LeagueDetailResponse ToDetailResponse(League league, string tournamentName, Guid userId)
+    // The lock is derived, never stored: a league's scoring is frozen once any match in its
+    // tournament has kicked off. Nothing to migrate, nothing to keep in sync — and a league
+    // created after a tournament has begun is locked from birth.
+    private async Task<bool> IsScoringLockedAsync(Guid tournamentId, CancellationToken cancellationToken)
+        => await _matches.AnyKickedOffAsync(tournamentId, DateTimeOffset.UtcNow, cancellationToken);
+
+    // isScoringLocked is passed in rather than derived here — the shaper has no repository access,
+    // and every caller already knows the tournament it just read.
+    private static LeagueDetailResponse ToDetailResponse(League league, string tournamentName, Guid userId, bool isScoringLocked)
         => new(
             league.Id,
             league.Name,
@@ -217,6 +276,7 @@ public class LeaguesController : ControllerBase
             tournamentName,
             league.InviteCode,
             league.OrganizerUserId == userId,
+            isScoringLocked,
             league.Memberships.Count,
             league.ScoringRules
                 .OrderBy(r => r.Parameter)

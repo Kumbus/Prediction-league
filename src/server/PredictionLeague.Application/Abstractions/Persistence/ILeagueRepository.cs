@@ -18,6 +18,16 @@ public interface ILeagueRepository : IRepository<League>
     // whether the requester may see it.
     Task<League?> GetWithDetailAsync(Guid leagueId, CancellationToken cancellationToken = default);
 
+    // Write-side counterpart of GetWithDetailAsync: the same graph, but *tracked*, so the rule-set
+    // replace can mutate it. GetWithDetailAsync is AsNoTracking and must not back a write.
+    Task<League?> GetForUpdateAsync(Guid leagueId, CancellationToken cancellationToken = default);
+
+    // Reconciles the tracked league's scoring config to exactly `rules` and saves once. Takes a
+    // League returned by GetForUpdateAsync; `rules` are read as values (Parameter + Points) and
+    // are never attached — a delete-then-add of the same (LeagueId, Parameter) would trip the
+    // unique index within a single save.
+    Task ReplaceScoringRulesAsync(League league, IReadOnlyList<ScoringRule> rules, CancellationToken cancellationToken = default);
+
     // Pre-insert probe for the invite-code generator. The unique index is the real guarantee.
     Task<bool> InviteCodeExistsAsync(string inviteCode, CancellationToken cancellationToken = default);
 

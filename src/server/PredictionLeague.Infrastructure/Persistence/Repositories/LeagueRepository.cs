@@ -34,6 +34,51 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             .Include(l => l.Memberships)
             .FirstOrDefaultAsync(l => l.Id == leagueId, cancellationToken);
 
+    // Same graph as GetWithDetailAsync, tracked — the scoring-rule replace mutates what it returns.
+    public async Task<League?> GetForUpdateAsync(Guid leagueId, CancellationToken cancellationToken = default)
+        => await Set
+            .Include(l => l.ScoringRules)
+            .Include(l => l.Memberships)
+            .FirstOrDefaultAsync(l => l.Id == leagueId, cancellationToken);
+
+    // Reconciles in place rather than delete-and-reinsert: (LeagueId, Parameter) is unique and EF
+    // Core does not guarantee the DELETE is batched ahead of an INSERT for the same key in one
+    // SaveChangesAsync, so toggling a parameter off and on again would hit error 2601. Incoming
+    // rules are read as values only and never attached.
+    public async Task ReplaceScoringRulesAsync(League league, IReadOnlyList<ScoringRule> rules, CancellationToken cancellationToken = default)
+    {
+        var incoming = rules.ToDictionary(r => r.Parameter, r => r.Points);
+
+        foreach (var existing in league.ScoringRules.ToList())
+        {
+            if (incoming.TryGetValue(existing.Parameter, out var points))
+            {
+                existing.Points = points;
+            }
+            else
+            {
+                // Set is DbSet<League> here, and the cascade relationship has no inverse
+                // navigation to lean on for orphan deletion — remove the child explicitly.
+                Context.Set<ScoringRule>().Remove(existing);
+                league.ScoringRules.Remove(existing);
+            }
+        }
+
+        var present = league.ScoringRules.Select(r => r.Parameter).ToHashSet();
+        foreach (var (parameter, points) in incoming.Where(kv => !present.Contains(kv.Key)))
+        {
+            league.ScoringRules.Add(new ScoringRule
+            {
+                Id = Guid.NewGuid(),
+                LeagueId = league.Id,
+                Parameter = parameter,
+                Points = points
+            });
+        }
+
+        await Context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<bool> InviteCodeExistsAsync(string inviteCode, CancellationToken cancellationToken = default)
         => await Set.AnyAsync(l => l.InviteCode == inviteCode, cancellationToken);
 

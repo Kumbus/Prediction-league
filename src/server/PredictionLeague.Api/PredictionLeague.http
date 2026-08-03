@@ -5,14 +5,15 @@ Accept: text/plain
 
 ###
 
-### Leagues (S-03)
-# All three require the Identity auth cookie — sign in first via api/auth. Anonymous calls
+### Leagues (S-03, S-04)
+# All require the Identity auth cookie — sign in first via api/auth. Anonymous calls
 # return 401. TournamentId must be a *published* tournament (GET api/tournaments lists them).
 
 @LeagueId = 00000000-0000-0000-0000-000000000000
 @TournamentId = 00000000-0000-0000-0000-000000000000
 
-# Create a league. All six ScoringParameter members must appear exactly once; Points are 0..1000.
+# Create a league. The rule set is a *selection*: list only the parameters that score, each at
+# most once, Points 1..1000. A parameter that does not score is simply left out.
 POST {{PredictionLeague_HostAddress}}/api/leagues
 Content-Type: application/json
 
@@ -21,11 +22,7 @@ Content-Type: application/json
   "tournamentId": "{{TournamentId}}",
   "scoringRules": [
     { "parameter": "ExactScore", "points": 3 },
-    { "parameter": "CorrectOutcome", "points": 1 },
-    { "parameter": "CorrectGoalScorer", "points": 2 },
-    { "parameter": "CorrectCardCount", "points": 0 },
-    { "parameter": "CorrectYellowCards", "points": 0 },
-    { "parameter": "CorrectRedCards", "points": 0 }
+    { "parameter": "CorrectOutcome", "points": 1 }
   ]
 }
 
@@ -38,7 +35,32 @@ Accept: application/json
 ###
 
 # League detail with invite code + scoring rules. 404 when the caller is not organizer or member.
+# isScoringLocked is true once any match in the league's tournament has kicked off.
 GET {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}
 Accept: application/json
+
+###
+
+# Replace the league's scoring rules (organizer only). 403 for a member who is not the organizer,
+# 404 for anyone else, 409 once the tournament has started.
+PUT {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/scoring-rules
+Content-Type: application/json
+
+{
+  "scoringRules": [
+    { "parameter": "ExactScore", "points": 5 },
+    { "parameter": "CorrectGoalScorer", "points": 4 }
+  ]
+}
+
+###
+
+# Empty rule set — expect 400 "At least one scoring rule is required."
+PUT {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/scoring-rules
+Content-Type: application/json
+
+{
+  "scoringRules": []
+}
 
 ###
