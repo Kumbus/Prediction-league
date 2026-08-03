@@ -290,32 +290,32 @@ Roll back by reverting the commits — there is no persisted state that a revert
 
 #### Automated
 
-- [x] 1.1 Server builds: `cd src/server && dotnet build`
-- [x] 1.2 No new migration is generated (schema unchanged)
-- [x] 1.3 `LeaguesController.cs` still has no `Microsoft.EntityFrameworkCore` import
+- [x] 1.1 Server builds: `cd src/server && dotnet build` — f1f7d61
+- [x] 1.2 No new migration is generated (schema unchanged) — f1f7d61
+- [x] 1.3 `LeaguesController.cs` still has no `Microsoft.EntityFrameworkCore` import — f1f7d61
 
 #### Manual
 
-- [x] 1.4 `POST /api/leagues` accepts a partial set and rejects empty / duplicate / zero-point rules
-- [x] 1.5 `PUT /api/leagues/{id}/scoring-rules` as organizer replaces the set; `GET` returns the new rules
-- [x] 1.6 Toggling a parameter off and back on across two `PUT`s saves cleanly
-- [x] 1.7 Member gets 403; non-member gets 404; unknown id gets 404
-- [x] 1.8 Started tournament returns 409 on `PUT` and `isScoringLocked: true` on `GET`
+- [x] 1.4 `POST /api/leagues` accepts a partial set and rejects empty / duplicate / zero-point rules — f1f7d61
+- [x] 1.5 `PUT /api/leagues/{id}/scoring-rules` as organizer replaces the set; `GET` returns the new rules — f1f7d61
+- [x] 1.6 Toggling a parameter off and back on across two `PUT`s saves cleanly — f1f7d61
+- [x] 1.7 Member gets 403; non-member gets 404; unknown id gets 404 — f1f7d61
+- [x] 1.8 Started tournament returns 409 on `PUT` and `isScoringLocked: true` on `GET` — f1f7d61
 
 ### Phase 2: Client — selectable rules on create, inline edit on detail
 
 #### Automated
 
-- [ ] 2.1 Client builds: `cd src/client && npm run build`
-- [ ] 2.2 Lint passes: `cd src/client && npm run lint`
+- [x] 2.1 Client builds: `cd src/client && npm run build`
+- [x] 2.2 Lint passes: `cd src/client && npm run lint`
 
 #### Manual
 
-- [ ] 2.3 Creating a league with two active parameters shows exactly those two rows
-- [ ] 2.4 Create form blocks submit when every parameter is deselected
-- [ ] 2.5 Organizer edits rules, saves, table updates; reload shows the same values
-- [ ] 2.6 Points input rejects 0 and values above 1000
-- [ ] 2.7 A member sees no Edit button on a league they belong to
-- [ ] 2.8 Started tournament: Edit button absent, lock notice shown
-- [ ] 2.9 Pre-S-04 league opens Edit with zero-point parameters inactive, not invalid
-- [ ] 2.10 Create form warns on a started tournament and still allows creation
+- [x] 2.3 Creating a league with two active parameters shows exactly those two rows
+- [x] 2.4 Create form blocks submit when every parameter is deselected
+- [x] 2.5 Organizer edits rules, saves, table updates; reload shows the same values
+- [x] 2.6 Points input rejects 0 and values above 1000
+- [x] 2.7 A member sees no Edit button on a league they belong to
+- [x] 2.8 Started tournament: Edit button absent, lock notice shown
+- [x] 2.9 Pre-S-04 league opens Edit with zero-point parameters inactive, not invalid
+- [x] 2.10 Create form warns on a started tournament and still allows creation

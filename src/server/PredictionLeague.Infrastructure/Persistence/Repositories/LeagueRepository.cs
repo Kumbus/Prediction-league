@@ -47,6 +47,14 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
     // rules are read as values only and never attached.
     public async Task ReplaceScoringRulesAsync(League league, IReadOnlyList<ScoringRule> rules, CancellationToken cancellationToken = default)
     {
+        // A detached league fails silently and partially: Remove still deletes (it attaches the
+        // child as Deleted), but the Points updates and the added rules are never observed, so
+        // SaveChangesAsync returns clean on a half-written config. GetWithDetailAsync is
+        // AsNoTracking and sits right above GetForUpdateAsync — make the wrong one loud.
+        if (Context.Entry(league).State == EntityState.Detached)
+            throw new InvalidOperationException(
+                $"{nameof(ReplaceScoringRulesAsync)} requires a tracked League from {nameof(GetForUpdateAsync)}.");
+
         var incoming = rules.ToDictionary(r => r.Parameter, r => r.Points);
 
         foreach (var existing in league.ScoringRules.ToList())

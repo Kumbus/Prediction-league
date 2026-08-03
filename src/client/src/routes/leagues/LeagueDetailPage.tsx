@@ -2,13 +2,14 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { LeagueDetailResponse } from "@/leagues/types"
-import { SCORING_LABELS } from "@/leagues/types"
+import { ScoringCard } from "@/components/leagues/ScoringCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 // One league: what it is bound to, who is in it, the invite code to share (FR-007), and the
-// scoring config. Rule editing arrives in S-04; join-by-code in S-05.
+// scoring config — editable by the organizer until the tournament starts (S-04). The Scoring
+// card owns that whole interaction; join-by-code is still S-05.
 export function LeagueDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -110,27 +111,7 @@ export function LeagueDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>Scoring</CardTitle></CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="py-2 font-medium">Parameter</th>
-                  <th className="py-2 text-right font-medium">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {league.scoringRules.map((r) => (
-                  <tr key={r.parameter} className="border-b border-border/50 last:border-0">
-                    <td className="py-2">{SCORING_LABELS[r.parameter] ?? r.parameter}</td>
-                    <td className="py-2 text-right tabular-nums">{r.points}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        <ScoringCard league={league} onLeagueChange={setLeague} />
       </div>
     </div>
   )

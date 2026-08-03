@@ -27,19 +27,32 @@ export interface LeagueSummaryResponse {
 
 export interface LeagueDetailResponse extends LeagueSummaryResponse {
   inviteCode: string
+  // Scoring freezes once the league's tournament has its first kickoff (S-04) — the server
+  // derives it, so the UI hides the edit affordance instead of discovering it via a 409.
+  isScoringLocked: boolean
   scoringRules: ScoringRuleDto[]
 }
 
-// Prefill for the create form and the display order of the rule table. The API requires every
-// parameter exactly once, so this list is also the completeness contract — drive the form off it
-// rather than hand-writing an input per parameter.
-export const SCORING_DEFAULTS: { parameter: ScoringParameter; label: string; points: number }[] = [
-  { parameter: "ExactScore", label: "Exact score", points: 3 },
-  { parameter: "CorrectOutcome", label: "Correct outcome", points: 1 },
-  { parameter: "CorrectGoalScorer", label: "Correct goal scorer", points: 2 },
-  { parameter: "CorrectCardCount", label: "Correct card count", points: 0 },
-  { parameter: "CorrectYellowCards", label: "Correct yellow cards", points: 0 },
-  { parameter: "CorrectRedCards", label: "Correct red cards", points: 0 },
+// Server-side floor and ceiling for a rule's points. The floor is 1: a parameter that does not
+// score is left out of the set entirely, so there is no zero-point row to interpret.
+export const MIN_RULE_POINTS = 1
+export const MAX_RULE_POINTS = 1000
+
+// The catalogue of selectable parameters — display order for the rule table, prefill and
+// default selection for the forms. Not a completeness contract: a league scores only the
+// parameters it lists. Drive the form off this rather than hand-writing an input per parameter.
+export const SCORING_DEFAULTS: {
+  parameter: ScoringParameter
+  label: string
+  points: number
+  defaultActive: boolean
+}[] = [
+  { parameter: "ExactScore", label: "Exact score", points: 3, defaultActive: true },
+  { parameter: "CorrectOutcome", label: "Correct outcome", points: 1, defaultActive: true },
+  { parameter: "CorrectGoalScorer", label: "Correct goal scorer", points: 2, defaultActive: true },
+  { parameter: "CorrectCardCount", label: "Correct card count", points: 1, defaultActive: false },
+  { parameter: "CorrectYellowCards", label: "Correct yellow cards", points: 1, defaultActive: false },
+  { parameter: "CorrectRedCards", label: "Correct red cards", points: 1, defaultActive: false },
 ]
 
 export const SCORING_LABELS: Record<ScoringParameter, string> = Object.fromEntries(
