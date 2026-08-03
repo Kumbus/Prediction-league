@@ -31,7 +31,7 @@ Free football prediction games today only run on official organizer sites for th
 | ----- | -------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------------------- | -------- |
 | F-01  | layered-backend-persistence | (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place | —                  | FR-002, NFR-freshness     | done     |
 | F-02  | auth-oauth-scaffold        | (foundation) OAuth sign-in scaffold + identity issuing/verification wired    | —                  | FR-001, Access Control    | done     |
-| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | ready    |
+| F-03  | football-api-ingest        | (foundation) football data API client + scheduled ingest of fixtures/results | F-01               | FR-004, FR-005            | done     |
 | F-04  | walking-skeleton-deploy     | (foundation) app + Azure SQL deployed end-to-end; first prod migration applied (auto-migrate from CI — conscious deviation, see infrastructure-v2.md 2026-06-08 note) | F-01, F-02         | NFR-freshness, infra-v2   | done     |
 | S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | done     |
 | S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | done     |
@@ -104,7 +104,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - ~~Which API source covers fixtures + results + goal scorers + cards within budget?~~ RESOLVED — API-Football free tier; `Events` endpoint carries goals + cards at €0 (OQ #1).
 - **Risk:** Was the #1 roadmap blocker; source now chosen so ingest can be built and granular scoring (FR-005) is viable at €0. New constraint: **free tier caps 100 req/day** — ingest must be poll-frugal (timer fires in match windows only) + cache hard (persist fixtures/results, pull events once per match after FT); live/15s polling is out of scope v1. Read rate-limit response headers and back off. Path if 100/day pinches: cache harder → $19 Pro (7,500/day, identical shapes) → role-split fallback (see `api-research.md`).
-- **Status:** ready
+- **Status:** done
 
 ### F-04: Walking-skeleton Azure deploy
 
@@ -246,6 +246,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 - **F-01: (foundation) layered backend (Domain/Application/Infrastructure) + EF Core persistence in place** — Archived 2026-08-03 → `context/archive/2026-05-28-layered-backend-persistence/`. Lesson: —.
 - **F-02: (foundation) OAuth sign-in scaffold + identity issuing/verification wired** — Archived 2026-08-03 → `context/archive/2026-06-07-auth-oauth-scaffold/`. Lesson: —.
+- **F-03: (foundation) football data API client + scheduled ingest of fixtures/results** — Archived 2026-08-03 → `context/archive/2026-06-04-football-api-ingest/`. Lesson: 3 manual verification steps (4.2, 4.3, 5.4) left open — API-Football free tier can't fetch current-season fixtures; revisit if the $19 Pro tier is bought.
 - **F-04: (foundation) app + Azure SQL deployed end-to-end; first prod migration applied** — Archived 2026-08-03 → `context/archive/2026-06-07-walking-skeleton-deploy/`. Lesson: —.
 - **S-01: sign in via OAuth and land in the authenticated app** — Archived 2026-08-03 → `context/archive/2026-06-08-user-sign-in/`. Lesson: —.
 - **S-02: (admin) add a tournament and have its fixtures + per-match detail ingested** — Archived 2026-08-03 → `context/archive/2026-06-08-admin-seed-tournament/`. Lesson: manual match entry (form + CSV) folded in as interim data source while paid API-Football ingest is deferred.
