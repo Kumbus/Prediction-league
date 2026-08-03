@@ -1,9 +1,9 @@
 ---
 change_id: walking-skeleton-deploy
 title: Walking-skeleton Azure deploy — layered API + Azure SQL, first prod migration
-status: impl_reviewed
+status: archived
 created: 2026-06-07
-updated: 2026-06-08
+updated: 2026-08-03
 
 # Resource audit trail (post-Phase 2)
 
@@ -120,7 +120,7 @@ Foundation docs updated in Phase 5:
 
 - Save the SQL admin password to the password manager (already surfaced once at the Phase 2 gate).
 - Add `https://prediction-league-api-0523444a.azurewebsites.net/signin-google` as an authorized redirect URI in the Google Cloud Console on the shared dev/prod OAuth client. Without this, real Google sign-in completes with a `redirect_uri_mismatch`. The `/api/auth/login/google` → `302` automated check verifies the *server-side* challenge issuance only.
-archived_at: null
+archived_at: 2026-08-03T17:04:13Z
 ---
 
 ## Notes
