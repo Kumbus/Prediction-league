@@ -35,7 +35,7 @@ Free football prediction games today only run on official organizer sites for th
 | F-04  | walking-skeleton-deploy     | (foundation) app + Azure SQL deployed end-to-end; first prod migration applied (auto-migrate from CI — conscious deviation, see infrastructure-v2.md 2026-06-08 note) | F-01, F-02         | NFR-freshness, infra-v2   | done     |
 | S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | done     |
 | S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | done     |
-| S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | proposed |
+| S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | done     |
 | S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | proposed |
 | S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | proposed |
 | S-06  | submit-locked-predictions  | submit predictions for upcoming matches, locked at kickoff                   | S-05, S-02         | FR-009, FR-010, FR-002    | proposed |
@@ -156,7 +156,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Straightforward CRUD over the persisted model once auth and tournaments exist. Sequenced after both because a league needs an owner and a tournament to bind to.
-- **Status:** proposed
+- **Status:** done
 
 ### S-04: Organizer defines custom scoring rules
 
@@ -250,3 +250,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **F-04: (foundation) app + Azure SQL deployed end-to-end; first prod migration applied** — Archived 2026-08-03 → `context/archive/2026-06-07-walking-skeleton-deploy/`. Lesson: —.
 - **S-01: sign in via OAuth and land in the authenticated app** — Archived 2026-08-03 → `context/archive/2026-06-08-user-sign-in/`. Lesson: —.
 - **S-02: (admin) add a tournament and have its fixtures + per-match detail ingested** — Archived 2026-08-03 → `context/archive/2026-06-08-admin-seed-tournament/`. Lesson: manual match entry (form + CSV) folded in as interim data source while paid API-Football ingest is deferred.
+- **S-03: create a league tied to a seeded tournament** — Archived 2026-08-03 → `context/archive/2026-08-03-organizer-create-league/`. Lesson: controllers must not catch ORM-specific exceptions — the invite-code collision retry moved behind `ILeagueRepository.CreateAsync` as `InviteCodeCollisionException` (recorded in lessons.md).
