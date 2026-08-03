@@ -306,16 +306,16 @@ Roll back by reverting the commits — there is no persisted state that a revert
 
 #### Automated
 
-- [x] 2.1 Client builds: `cd src/client && npm run build`
-- [x] 2.2 Lint passes: `cd src/client && npm run lint`
+- [x] 2.1 Client builds: `cd src/client && npm run build` — 4bc2b2a
+- [x] 2.2 Lint passes: `cd src/client && npm run lint` — 4bc2b2a
 
 #### Manual
 
-- [x] 2.3 Creating a league with two active parameters shows exactly those two rows
-- [x] 2.4 Create form blocks submit when every parameter is deselected
-- [x] 2.5 Organizer edits rules, saves, table updates; reload shows the same values
-- [x] 2.6 Points input rejects 0 and values above 1000
-- [x] 2.7 A member sees no Edit button on a league they belong to
-- [x] 2.8 Started tournament: Edit button absent, lock notice shown
-- [x] 2.9 Pre-S-04 league opens Edit with zero-point parameters inactive, not invalid
-- [x] 2.10 Create form warns on a started tournament and still allows creation
+- [x] 2.3 Creating a league with two active parameters shows exactly those two rows — 4bc2b2a
+- [x] 2.4 Create form blocks submit when every parameter is deselected — 4bc2b2a
+- [x] 2.5 Organizer edits rules, saves, table updates; reload shows the same values — 4bc2b2a
+- [x] 2.6 Points input rejects 0 and values above 1000 — 4bc2b2a
+- [x] 2.7 A member sees no Edit button on a league they belong to — 4bc2b2a
+- [x] 2.8 Started tournament: Edit button absent, lock notice shown — 4bc2b2a
+- [x] 2.9 Pre-S-04 league opens Edit with zero-point parameters inactive, not invalid — 4bc2b2a
+- [x] 2.10 Create form warns on a started tournament and still allows creation — 4bc2b2a
