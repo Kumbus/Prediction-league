@@ -625,14 +625,14 @@ client is live breaks join, leave, and transfer.
 
 #### Automated
 
-- [x] 4.1 Client builds: `cd src/client && npm run build`
-- [x] 4.2 Lint passes: `cd src/client && npm run lint`
+- [x] 4.1 Client builds: `cd src/client && npm run build` — 59964ff
+- [x] 4.2 Lint passes: `cd src/client && npm run lint` — 59964ff
 
 #### Manual
 
-- [x] 4.3 Roster lists both accounts with correct badges
-- [x] 4.4 Member sees Leave only; an organizer with other members sees Transfer only
-- [x] 4.5 Leaving returns to the list and the league is gone
-- [x] 4.6 Transfer flips both views without reload; new organizer can edit scoring rules
-- [x] 4.7 After transferring, the old organizer's Leave works
-- [x] 4.8 A solo league offers no Transfer, but "Leave and delete league" works and removes it
+- [x] 4.3 Roster lists both accounts with correct badges — 59964ff
+- [x] 4.4 Member sees Leave only; an organizer with other members sees Transfer only — 59964ff
+- [x] 4.5 Leaving returns to the list and the league is gone — 59964ff
+- [x] 4.6 Transfer flips both views without reload; new organizer can edit scoring rules — 59964ff
+- [x] 4.7 After transferring, the old organizer's Leave works — 59964ff
+- [x] 4.8 A solo league offers no Transfer, but "Leave and delete league" works and removes it — 59964ff
