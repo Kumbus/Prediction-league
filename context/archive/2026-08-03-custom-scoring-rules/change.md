@@ -1,10 +1,10 @@
 ---
 change_id: custom-scoring-rules
 title: Custom scoring rules
-status: implemented
+status: archived
 created: 2026-08-03
-updated: 2026-08-03
-archived_at: null
+updated: 2026-08-12
+archived_at: 2026-08-12T18:27:32Z
 ---
 
 ## Notes

@@ -3,7 +3,7 @@ project: "Football Match Prediction App"
 version: 1
 status: draft
 created: 2026-05-28
-updated: 2026-08-03
+updated: 2026-08-12
 prd_version: 1
 main_goal: speed
 top_blocker: external
@@ -36,7 +36,7 @@ Free football prediction games today only run on official organizer sites for th
 | S-01  | user-sign-in               | sign in via OAuth and land in the authenticated app                          | F-02, F-04         | FR-001, US-01             | done     |
 | S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | done     |
 | S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | done     |
-| S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | proposed |
+| S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | done     |
 | S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | proposed |
 | S-06  | submit-locked-predictions  | submit predictions for upcoming matches, locked at kickoff                   | S-05, S-02         | FR-009, FR-010, FR-002    | proposed |
 | S-07  | scoring-engine-standings   | see points and standings update automatically after each match              | S-04, S-06, S-02   | FR-011, FR-012, US-01     | proposed |
@@ -169,7 +169,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - How is the rule engine validated to score correctly across arbitrary configs? — Owner: user + engineering. Block: no (resolvable during `/10x-plan`; surfaces the test-fixture / recompute strategy).
 - **Risk:** Configures the wedge. Data-driven rules must avoid hardcoded point values. The correctness strategy is deferred to planning but flagged here because S-07 depends on it.
-- **Status:** proposed
+- **Status:** done
 
 ### S-05: Invite friends and join a league
 
@@ -251,3 +251,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **S-01: sign in via OAuth and land in the authenticated app** — Archived 2026-08-03 → `context/archive/2026-06-08-user-sign-in/`. Lesson: —.
 - **S-02: (admin) add a tournament and have its fixtures + per-match detail ingested** — Archived 2026-08-03 → `context/archive/2026-06-08-admin-seed-tournament/`. Lesson: manual match entry (form + CSV) folded in as interim data source while paid API-Football ingest is deferred.
 - **S-03: create a league tied to a seeded tournament** — Archived 2026-08-03 → `context/archive/2026-08-03-organizer-create-league/`. Lesson: controllers must not catch ORM-specific exceptions — the invite-code collision retry moved behind `ILeagueRepository.CreateAsync` as `InviteCodeCollisionException` (recorded in lessons.md).
+- **S-04: define custom scoring rules for a league** — Archived 2026-08-12 → `context/archive/2026-08-03-custom-scoring-rules/`. Lesson: —.
