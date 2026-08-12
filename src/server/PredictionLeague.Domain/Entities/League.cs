@@ -28,4 +28,8 @@ public class LeagueMembership
     public Guid UserId { get; set; }
 
     public MembershipRole Role { get; set; }
+
+    // When this member joined (FR-007). Stamped explicitly on every insert; the column default
+    // only exists to backfill rows that predate the column.
+    public DateTimeOffset JoinedUtc { get; set; }
 }

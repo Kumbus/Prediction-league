@@ -157,30 +157,28 @@ public class LeaguesController : ControllerBase
                 .ToList(),
             Memberships =
             [
-                new LeagueMembership { Id = Guid.NewGuid(), UserId = userId, Role = MembershipRole.Organizer }
+                new LeagueMembership
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Role = MembershipRole.Organizer,
+                    JoinedUtc = DateTimeOffset.UtcNow
+                }
             ]
         };
 
         try
         {
-            await _leagues.CreateAsync(league, cancellationToken);
+            // The repository owns the collision retry — it is the layer that can tell a rejected
+            // invite code from any other write failure. The generator goes in as a delegate rather
+            // than a repository dependency; injecting it would close a DI cycle.
+            await _leagues.CreateAsync(league, _inviteCodes.GenerateAsync, cancellationToken);
         }
         catch (InviteCodeCollisionException)
         {
-            // The generator's pre-check is racy by construction — the unique index on InviteCode
-            // is the real guarantee. Re-code the still-tracked league and save once more; the
-            // insert is retried whole. A second collision is not worth chasing.
-            try
-            {
-                league.InviteCode = await _inviteCodes.GenerateAsync(cancellationToken);
-                await _leagues.CreateAsync(league, cancellationToken);
-            }
-            catch (Exception ex) when (ex is InviteCodeCollisionException or InvalidOperationException)
-            {
-                return Problem(
-                    detail: "Could not create the league right now. Please try again.",
-                    statusCode: StatusCodes.Status503ServiceUnavailable);
-            }
+            return Problem(
+                detail: "Could not create the league right now. Please try again.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
         return CreatedAtAction(

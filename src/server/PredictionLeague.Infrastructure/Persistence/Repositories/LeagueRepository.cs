@@ -90,22 +90,145 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
     public async Task<bool> InviteCodeExistsAsync(string inviteCode, CancellationToken cancellationToken = default)
         => await Set.AnyAsync(l => l.InviteCode == inviteCode, cancellationToken);
 
-    // One SaveChangesAsync covers the league, its scoring rules, and its memberships, so a
-    // failure can never leave a league without its config or its organizer. A rejected invite
-    // code surfaces as a domain exception — provider knowledge stops here.
-    public async Task CreateAsync(League league, CancellationToken cancellationToken = default)
+    // Tracked, because the join path writes a membership onto what it reads. ScoringRules is not
+    // optional here: the join returns the full league detail and lazy loading is off, so leaving it
+    // out would ship an empty rule set rather than fail.
+    public async Task<League?> GetByInviteCodeAsync(string inviteCode, CancellationToken cancellationToken = default)
+        => await Set
+            .Include(l => l.ScoringRules)
+            .Include(l => l.Memberships)
+            .FirstOrDefaultAsync(l => l.InviteCode == inviteCode, cancellationToken);
+
+    public async Task JoinAsync(League league, Guid userId, CancellationToken cancellationToken = default)
     {
-        // A failed SaveChangesAsync leaves the graph tracked as Added, so a caller retrying with a
-        // fresh invite code re-enters here with the same instance — only attach it the first time.
+        RequireTracked(league, nameof(JoinAsync), nameof(GetByInviteCodeAsync));
+
+        if (league.Memberships.Any(m => m.UserId == userId)) return;
+
+        var membership = new LeagueMembership
+        {
+            Id = Guid.NewGuid(),
+            LeagueId = league.Id,
+            UserId = userId,
+            Role = MembershipRole.Member,
+            JoinedUtc = DateTimeOffset.UtcNow
+        };
+        league.Memberships.Add(membership);
+
+        try
+        {
+            await Context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsMembershipCollision(ex))
+        {
+            // Two submissions of the same code by the same user both passed the check above and
+            // both inserted; the unique index rejected this one. The end state is what the caller
+            // asked for either way — the user is a member — so unwind the phantom row (it would
+            // otherwise inflate MemberCount off the tracked graph) and return successfully.
+            Context.Entry(membership).State = EntityState.Detached;
+            league.Memberships.Remove(membership);
+        }
+    }
+
+    public async Task LeaveAsync(League league, Guid userId, CancellationToken cancellationToken = default)
+    {
+        RequireTracked(league, nameof(LeaveAsync), nameof(GetForUpdateAsync));
+
+        var membership = league.Memberships.FirstOrDefault(m => m.UserId == userId);
+        if (membership is null) return;
+
+        if (league.Memberships.Count == 1)
+        {
+            // The last member out takes the league with them, so a league created by mistake does
+            // not outlive everyone's interest in it. The count is read off the tracked graph rather
+            // than re-queried, and ScoringRules + the membership go out on the cascade configured
+            // in LeagueConfiguration — still one save.
+            Set.Remove(league);
+        }
+        else
+        {
+            // The cascade relationship has no inverse navigation to lean on for orphan deletion —
+            // remove the child explicitly, as ReplaceScoringRulesAsync does.
+            Context.Set<LeagueMembership>().Remove(membership);
+            league.Memberships.Remove(membership);
+        }
+
+        await Context.SaveChangesAsync(cancellationToken);
+    }
+
+    // The organizer is represented twice — League.OrganizerUserId and a Role = Organizer membership
+    // row — and no read path checks the two agree, so both move in one save or neither does.
+    public async Task TransferOrganizerAsync(League league, Guid newOrganizerUserId, CancellationToken cancellationToken = default)
+    {
+        RequireTracked(league, nameof(TransferOrganizerAsync), nameof(GetForUpdateAsync));
+
+        var target = league.Memberships.FirstOrDefault(m => m.UserId == newOrganizerUserId)
+            ?? throw new InvalidOperationException(
+                $"User {newOrganizerUserId} has no membership in league {league.Id}.");
+
+        foreach (var organizer in league.Memberships.Where(m => m.Role == MembershipRole.Organizer))
+            organizer.Role = MembershipRole.Member;
+
+        target.Role = MembershipRole.Organizer;
+        league.OrganizerUserId = newOrganizerUserId;
+
+        await Context.SaveChangesAsync(cancellationToken);
+    }
+
+    // LeagueMembership.UserId has no FK to AspNetUsers, so the display name comes from an explicit
+    // join. It is an inner join by construction: a membership whose user row is gone drops out
+    // rather than showing up nameless.
+    public async Task<IReadOnlyList<LeagueMemberDto>> ListMembersAsync(Guid leagueId, CancellationToken cancellationToken = default)
+    {
+        var members = from m in Context.Set<LeagueMembership>().AsNoTracking()
+                      join u in Context.Users.AsNoTracking() on m.UserId equals u.Id
+                      where m.LeagueId == leagueId
+                      orderby m.JoinedUtc
+                      select new LeagueMemberDto(m.UserId, u.DisplayName, m.Role, m.JoinedUtc);
+
+        return await members.ToListAsync(cancellationToken);
+    }
+
+    // One SaveChangesAsync covers the league, its scoring rules, and its memberships, so a
+    // failure can never leave a league without its config or its organizer. The invite-code
+    // collision retry lives here rather than in the controller: reacting to a unique-index
+    // violation is a persistence concern, and the Api layer should not know write failures exist.
+    //
+    // The generator arrives as a delegate, not a constructor dependency. RandomInviteCodeGenerator
+    // already depends on ILeagueRepository for its pre-insert probe and both are AddScoped, so an
+    // injected IInviteCodeGenerator would close the cycle ILeagueRepository → IInviteCodeGenerator
+    // → ILeagueRepository — a resolve-time throw that leaves the build green and 500s every league
+    // route.
+    public async Task CreateAsync(League league, Func<CancellationToken, Task<string>> nextCode, CancellationToken cancellationToken = default)
+    {
         if (Context.Entry(league).State == EntityState.Detached)
             await Set.AddAsync(league, cancellationToken);
 
         try
         {
             await Context.SaveChangesAsync(cancellationToken);
+            return;
         }
         catch (DbUpdateException ex) when (IsInviteCodeCollision(ex))
         {
+            // The generator's pre-check is racy by construction — the unique index on InviteCode is
+            // the real guarantee. Fall through to exactly one retry; a second collision is not
+            // worth chasing.
+        }
+
+        try
+        {
+            // A failed SaveChangesAsync leaves the graph tracked as Added, so re-coding the same
+            // instance and saving again retries the insert whole.
+            league.InviteCode = await nextCode(cancellationToken);
+            await Context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is DbUpdateException dbEx && IsInviteCodeCollision(dbEx)
+                                   || ex is InvalidOperationException)
+        {
+            // Either the retry collided too, or the generator exhausted its own budget looking for
+            // a free code. Both are "no code available right now" — one domain exception, so the
+            // caller never has to name an EF Core or provider type.
             throw new InviteCodeCollisionException(league.InviteCode, ex);
         }
     }
@@ -114,6 +237,24 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
     // names the offending index in the message — checked so an unrelated write failure is not
     // mistaken for a code collision and retried pointlessly.
     private static bool IsInviteCodeCollision(DbUpdateException ex)
+        => IsUniqueViolationOf(ex, "IX_Leagues_InviteCode");
+
+    // Same check against the (LeagueId, UserId) index — the guarantee that makes a double join
+    // idempotent rather than a duplicate row.
+    private static bool IsMembershipCollision(DbUpdateException ex)
+        => IsUniqueViolationOf(ex, "IX_LeagueMemberships_LeagueId_UserId");
+
+    private static bool IsUniqueViolationOf(DbUpdateException ex, string indexName)
         => ex.InnerException is SqlException { Number: 2601 or 2627 } sql
-           && sql.Message.Contains("IX_Leagues_InviteCode", StringComparison.OrdinalIgnoreCase);
+           && sql.Message.Contains(indexName, StringComparison.OrdinalIgnoreCase);
+
+    // The write methods mutate the graph they are handed, so a detached league fails silently and
+    // partially — GetWithDetailAsync is AsNoTracking and sits right beside GetForUpdateAsync, so
+    // make the wrong one loud.
+    private void RequireTracked(League league, string method, string trackedReader)
+    {
+        if (Context.Entry(league).State == EntityState.Detached)
+            throw new InvalidOperationException(
+                $"{method} requires a tracked League from {trackedReader}.");
+    }
 }
