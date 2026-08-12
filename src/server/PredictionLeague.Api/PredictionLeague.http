@@ -64,3 +64,38 @@ Content-Type: application/json
 }
 
 ###
+
+### League membership (S-05)
+# The invite code is the only thing a joiner needs. MemberUserId is another member's userId,
+# which GET api/leagues/{id} lists under "members".
+
+@InviteCode = ABCDEFGH
+@MemberUserId = 00000000-0000-0000-0000-000000000000
+
+# Join by invite code. The code is normalized (trimmed + uppercased), so a lowercase code works.
+# Joining twice returns 200 with the same detail — idempotent, not 409. Unknown or blank → 404.
+POST {{PredictionLeague_HostAddress}}/api/leagues/join
+Content-Type: application/json
+
+{
+  "inviteCode": "{{InviteCode}}"
+}
+
+###
+
+# Leave the league. 404 when the caller is neither organizer nor member. 409 for the organizer
+# while other members remain — transfer first. The *last* member to leave deletes the league.
+DELETE {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/membership
+
+###
+
+# Hand the league to another member (organizer only). 403 for a member who is not the organizer,
+# 404 for anyone else, 400 when the target is the caller or is not a member of this league.
+PUT {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/organizer
+Content-Type: application/json
+
+{
+  "userId": "{{MemberUserId}}"
+}
+
+###

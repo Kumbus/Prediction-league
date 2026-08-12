@@ -571,35 +571,35 @@ client is live breaks join, leave, and transfer.
 
 #### Automated
 
-- [x] 1.1 Server builds: `cd src/server && dotnet build`
-- [x] 1.2 Migration generates cleanly (`AddLeagueMembershipJoinedUtc`)
-- [x] 1.3 `LeaguesController.cs` no longer imports `Microsoft.EntityFrameworkCore`
-- [x] 1.4 No second migration pending after the first applies
+- [x] 1.1 Server builds: `cd src/server && dotnet build` — 43455d3
+- [x] 1.2 Migration generates cleanly (`AddLeagueMembershipJoinedUtc`) — 43455d3
+- [x] 1.3 `LeaguesController.cs` no longer imports `Microsoft.EntityFrameworkCore` — 43455d3
+- [x] 1.4 No second migration pending after the first applies — 43455d3
 
 #### Manual
 
-- [x] 1.5 App starts, auto-migrates locally, `GET /health/db` healthy
-- [x] 1.6 Existing `LeagueMemberships` rows carry a plausible recent `JoinedUtc`, not `0001-01-01`
-- [x] 1.7 League creation still succeeds and stamps the organizer's `JoinedUtc`
-- [x] 1.8 `GET /api/leagues` returns 200/401, not 500 — `LeaguesController`'s DI graph resolves
+- [x] 1.5 App starts, auto-migrates locally, `GET /health/db` healthy — 43455d3
+- [x] 1.6 Existing `LeagueMemberships` rows carry a plausible recent `JoinedUtc`, not `0001-01-01` — 43455d3
+- [x] 1.7 League creation still succeeds and stamps the organizer's `JoinedUtc` — 43455d3
+- [x] 1.8 `GET /api/leagues` returns 200/401, not 500 — `LeaguesController`'s DI graph resolves — 43455d3
 
 ### Phase 2: Server — membership API
 
 #### Automated
 
-- [ ] 2.1 Server builds: `cd src/server && dotnet build`
+- [x] 2.1 Server builds: `cd src/server && dotnet build`
 
 #### Manual
 
-- [ ] 2.2 Second account joins with a valid code and the league appears in their list
-- [ ] 2.3 Re-joining the same code returns 200 and leaves member count unchanged
-- [ ] 2.4 Unknown and blank codes return 404; a lowercase valid code returns 200
-- [ ] 2.5 Detail returns both members with display names and roles, oldest first
-- [ ] 2.6 Member leaves → 204 and the league leaves their list
-- [ ] 2.7 Organizer attempting to leave with another member present gets 409
-- [ ] 2.8 Solo organizer leaves → 204 and the league plus its child rows are deleted
-- [ ] 2.9 Transfer flips organizer for both accounts; old organizer can then leave
-- [ ] 2.10 Transfer rejections: non-member 400, member caller 403, stranger 404
+- [x] 2.2 Second account joins with a valid code and the league appears in their list
+- [x] 2.3 Re-joining the same code returns 200 and leaves member count unchanged
+- [x] 2.4 Unknown and blank codes return 404; a lowercase valid code returns 200
+- [x] 2.5 Detail returns both members with display names and roles, oldest first
+- [x] 2.6 Member leaves → 204 and the league leaves their list
+- [x] 2.7 Organizer attempting to leave with another member present gets 409
+- [x] 2.8 Solo organizer leaves → 204 and the league plus its child rows are deleted
+- [x] 2.9 Transfer flips organizer for both accounts; old organizer can then leave
+- [x] 2.10 Transfer rejections: non-member 400, member caller 403, stranger 404
 
 ### Phase 3: Client — the join flow
 

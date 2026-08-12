@@ -7,7 +7,8 @@ using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Api.Controllers;
 
-// League create/list/detail plus organizer-only scoring-rule editing (FR-006, FR-008, US-01).
+// League create/list/detail, organizer-only scoring-rule editing, and the membership writes —
+// join by invite code, leave, transfer the organizer role (FR-006, FR-007, FR-008, US-01).
 // Roles are per-league via LeagueMembership, not a global policy, so visibility is checked
 // inline: a caller who is neither organizer nor member gets 404, mirroring the draft-tournament
 // rule in TournamentsController (no information leak).
@@ -46,6 +47,16 @@ public class LeaguesController : ControllerBase
 
     public record UpdateScoringRulesRequest(IReadOnlyList<ScoringRuleDto> ScoringRules);
 
+    public record JoinLeagueRequest(string InviteCode);
+
+    public record TransferOrganizerRequest(Guid UserId);
+
+    public record LeagueMemberResponse(
+        Guid UserId,
+        string DisplayName,
+        MembershipRole Role,
+        DateTimeOffset JoinedUtc);
+
     public record LeagueSummaryResponse(
         Guid Id,
         string Name,
@@ -64,8 +75,13 @@ public class LeaguesController : ControllerBase
         // Scoring is frozen once the tournament's first match has kicked off, so the client can
         // hide the edit affordance instead of discovering the rule via a failed request.
         bool IsScoringLocked,
+        // MemberCount stays alongside Members: the list page renders the count without fetching a
+        // roster, so it is not redundant with the list below.
         int MemberCount,
-        IReadOnlyList<ScoringRuleDto> ScoringRules);
+        IReadOnlyList<ScoringRuleDto> ScoringRules,
+        // The roster (FR-007). Visible to every member of the league — the same audience that can
+        // already see the invite code.
+        IReadOnlyList<LeagueMemberResponse> Members);
 
     // GET api/leagues — leagues the caller organizes or belongs to.
     [HttpGet]
@@ -103,7 +119,8 @@ public class LeaguesController : ControllerBase
 
         var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
         var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);
-        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked));
+        var members = await _leagues.ListMembersAsync(league.Id, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked, members));
     }
 
     // POST api/leagues — the league, its selected scoring rules, and the organizer's membership are
@@ -188,7 +205,8 @@ public class LeaguesController : ControllerBase
                 league,
                 tournament.Name,
                 userId,
-                await IsScoringLockedAsync(league.TournamentId, cancellationToken)));
+                await IsScoringLockedAsync(league.TournamentId, cancellationToken),
+                await _leagues.ListMembersAsync(league.Id, cancellationToken)));
     }
 
     // PUT api/leagues/{id}/scoring-rules — the organizer replaces the league's scoring config
@@ -232,7 +250,105 @@ public class LeaguesController : ControllerBase
         await _leagues.ReplaceScoringRulesAsync(league, rules, cancellationToken);
 
         var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
-        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked));
+        var members = await _leagues.ListMembersAsync(league.Id, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked, members));
+    }
+
+    // POST api/leagues/join — turn an invite code into membership (FR-007). Joining twice is a
+    // no-op that still returns the league: a re-clicked link from a chat thread is a normal event,
+    // not an error, and the organizer using their own code is just that same case. Returns the full
+    // detail so the client can render the league without a second round trip.
+    [HttpPost("join")]
+    public async Task<IActionResult> Join(JoinLeagueRequest request, CancellationToken cancellationToken)
+    {
+        if (CurrentUserId() is not { } userId) return Unauthorized();
+
+        // Normalized here rather than left to SQL Server's case-insensitive default collation, so
+        // "a lowercase code works" is a decision this endpoint makes, not a property of the
+        // database it happens to run on.
+        var inviteCode = request.InviteCode?.Trim().ToUpperInvariant() ?? string.Empty;
+
+        // An unknown code and a blank one share one message with a league the caller cannot see —
+        // the same masking rule the detail route applies.
+        var league = inviteCode.Length == 0
+            ? null
+            : await _leagues.GetByInviteCodeAsync(inviteCode, cancellationToken);
+        if (league is null)
+            return Problem(
+                detail: "No league found for that invite code.",
+                statusCode: StatusCodes.Status404NotFound);
+
+        await _leagues.JoinAsync(league, userId, cancellationToken);
+
+        var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
+        var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);
+        var members = await _leagues.ListMembersAsync(league.Id, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked, members));
+    }
+
+    // DELETE api/leagues/{id}/membership — leave a league. The organizer must hand the league over
+    // first, *unless* they are the only member left: that case deletes the league, so creating one
+    // by mistake is not permanently undoable. It is the only path that destroys a league, and the
+    // 409 above it means it can never destroy one other people are in.
+    [HttpDelete("{id:guid}/membership")]
+    public async Task<IActionResult> Leave(Guid id, CancellationToken cancellationToken)
+    {
+        if (CurrentUserId() is not { } userId) return Unauthorized();
+
+        var league = await _leagues.GetForUpdateAsync(id, cancellationToken);
+        if (league is null) return NotFound();
+
+        var isOrganizer = league.OrganizerUserId == userId;
+        if (!isOrganizer && league.Memberships.All(m => m.UserId != userId))
+            return NotFound();
+
+        if (isOrganizer && league.Memberships.Count > 1)
+            return Problem(
+                detail: "Transfer the league to another member before leaving.",
+                statusCode: StatusCodes.Status409Conflict);
+
+        await _leagues.LeaveAsync(league, userId, cancellationToken);
+        return NoContent();
+    }
+
+    // PUT api/leagues/{id}/organizer — hand the league to another member, which is also the
+    // precondition for the outgoing organizer's own exit. Returns the refreshed detail, where
+    // isOrganizer is now false for the caller, so the client flips its view from the server's
+    // answer rather than guessing locally.
+    [HttpPut("{id:guid}/organizer")]
+    public async Task<IActionResult> TransferOrganizer(
+        Guid id,
+        TransferOrganizerRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (CurrentUserId() is not { } userId) return Unauthorized();
+
+        var league = await _leagues.GetForUpdateAsync(id, cancellationToken);
+        if (league is null) return NotFound();
+
+        var isOrganizer = league.OrganizerUserId == userId;
+        if (!isOrganizer && league.Memberships.All(m => m.UserId != userId))
+            return NotFound();
+        if (!isOrganizer)
+            return Problem(
+                detail: "Only the league organizer can transfer the league.",
+                statusCode: StatusCodes.Status403Forbidden);
+
+        if (request.UserId == userId)
+            return Problem(
+                detail: "You are already the organizer of this league.",
+                statusCode: StatusCodes.Status400BadRequest);
+        if (league.Memberships.All(m => m.UserId != request.UserId))
+            return Problem(
+                detail: "That user is not a member of this league.",
+                statusCode: StatusCodes.Status400BadRequest);
+
+        await _leagues.TransferOrganizerAsync(league, request.UserId, cancellationToken);
+
+        var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
+        var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);
+        var members = await _leagues.ListMembersAsync(league.Id, cancellationToken);
+        return Ok(ToDetailResponse(league, tournament?.Name ?? string.Empty, userId, isScoringLocked, members));
     }
 
     // The rule set is *selectable*: a league scores only the parameters it lists. The invariant
@@ -264,9 +380,16 @@ public class LeaguesController : ControllerBase
     private async Task<bool> IsScoringLockedAsync(Guid tournamentId, CancellationToken cancellationToken)
         => await _matches.AnyKickedOffAsync(tournamentId, DateTimeOffset.UtcNow, cancellationToken);
 
-    // isScoringLocked is passed in rather than derived here — the shaper has no repository access,
-    // and every caller already knows the tournament it just read.
-    private static LeagueDetailResponse ToDetailResponse(League league, string tournamentName, Guid userId, bool isScoringLocked)
+    // isScoringLocked and members are passed in rather than derived here — the shaper has no
+    // repository access, and every caller already knows the tournament it just read. The member
+    // list in particular has to be read *after* the caller's own save: the tracked graph carries no
+    // display names, and on create/join the caller's own row does not exist until the save lands.
+    private static LeagueDetailResponse ToDetailResponse(
+        League league,
+        string tournamentName,
+        Guid userId,
+        bool isScoringLocked,
+        IReadOnlyList<LeagueMemberDto> members)
         => new(
             league.Id,
             league.Name,
@@ -279,6 +402,9 @@ public class LeaguesController : ControllerBase
             league.ScoringRules
                 .OrderBy(r => r.Parameter)
                 .Select(r => new ScoringRuleDto(r.Parameter, r.Points))
+                .ToList(),
+            members
+                .Select(m => new LeagueMemberResponse(m.UserId, m.DisplayName, m.Role, m.JoinedUtc))
                 .ToList());
 
     // Identity user keys are Guids (F-01), so the NameIdentifier claim parses directly —
