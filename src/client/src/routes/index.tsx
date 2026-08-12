@@ -15,6 +15,7 @@ import { MatchImportPage } from "./admin/matches/MatchImportPage"
 import { LeaguesListPage } from "./leagues/LeaguesListPage"
 import { LeagueFormPage } from "./leagues/LeagueFormPage"
 import { LeagueDetailPage } from "./leagues/LeagueDetailPage"
+import { JoinLeaguePage } from "./leagues/JoinLeaguePage"
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -25,6 +26,11 @@ export const router = createBrowserRouter([
       { path: "/app", element: <AppShell /> },
       { path: "/app/leagues", element: <LeaguesListPage /> },
       { path: "/app/leagues/new", element: <LeagueFormPage /> },
+      // The bare form is typed in by hand; the :code form is what an invite link points at and
+      // prefills. Route ranking puts the static "join" segment ahead of :id, so the two cannot
+      // collide.
+      { path: "/app/leagues/join", element: <JoinLeaguePage /> },
+      { path: "/app/leagues/join/:code", element: <JoinLeaguePage /> },
       { path: "/app/leagues/:id", element: <LeagueDetailPage /> },
     ],
   },

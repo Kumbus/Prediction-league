@@ -1,16 +1,25 @@
-import { Navigate, useSearchParams } from "react-router-dom"
+import { Navigate, useLocation, useSearchParams } from "react-router-dom"
 import { GoogleSignInButton } from "@/auth/GoogleSignInButton"
 import { LoginForm } from "@/auth/LoginForm"
 import { RegisterForm } from "@/auth/RegisterForm"
 import { messageForExternalError } from "@/auth/externalErrors"
+import { pathFromLocationState, safeReturnTo } from "@/auth/returnTo"
 import { useAuth } from "@/auth/useAuth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function SignInPage() {
   const { status } = useAuth()
+  const location = useLocation()
   const [params] = useSearchParams()
   const externalError = messageForExternalError(params.get("error"))
+
+  // Where sign-in hands the user off. Router state is preferred — it survives the in-SPA email
+  // path and cannot be forged from a link — with the `returnTo` query param as the fallback the
+  // Google round trip has to use, validated as a same-origin relative path. An invite link is the
+  // first destination that actually needs this; without it every path lands on /app.
+  const destination =
+    pathFromLocationState(location.state) ?? safeReturnTo(params.get("returnTo")) ?? "/app"
 
   if (status === "loading") {
     return (
@@ -22,7 +31,7 @@ export function SignInPage() {
       </main>
     )
   }
-  if (status === "authenticated") return <Navigate to="/app" replace />
+  if (status === "authenticated") return <Navigate to={destination} replace />
 
   return (
     <main className="flex min-h-svh items-center justify-center p-6">

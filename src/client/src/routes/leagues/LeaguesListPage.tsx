@@ -32,6 +32,7 @@ export function LeaguesListPage() {
         <h1 className="text-2xl font-semibold">My leagues</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/app")}>Back</Button>
+          <Button variant="outline" onClick={() => navigate("/app/leagues/join")}>Join a league</Button>
           <Button onClick={() => navigate("/app/leagues/new")}>New league</Button>
         </div>
       </div>
@@ -40,7 +41,7 @@ export function LeaguesListPage() {
         <p>Loading…</p>
       ) : items.length === 0 ? (
         <p className="text-muted-foreground">
-          No leagues yet. Create one to invite your friends.
+          No leagues yet. Create one to invite your friends, or join one with an invite code.
         </p>
       ) : (
         <div className="grid gap-3">

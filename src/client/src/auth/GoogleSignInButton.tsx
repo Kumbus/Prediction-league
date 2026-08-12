@@ -1,3 +1,5 @@
+import { useLocation } from "react-router-dom"
+import { pathFromLocationState, safeReturnTo } from "@/auth/returnTo"
 import { Button } from "@/components/ui/button"
 import { apiBaseUrl } from "@/lib/api"
 
@@ -30,8 +32,24 @@ function GoogleLogo() {
 }
 
 export function GoogleSignInButton() {
+  const location = useLocation()
+
   const onClick = () => {
-    const returnUrl = encodeURIComponent(`${window.location.origin}/sign-in`)
+    // Google is a full page navigation, so router state cannot survive the round trip — the
+    // destination rides in the query string instead.
+    const destination =
+      pathFromLocationState(location.state) ??
+      safeReturnTo(new URLSearchParams(location.search).get("returnTo"))
+
+    // returnUrl still points at /sign-in, never straight at the destination: ExternalCallback
+    // reports every external-login failure by appending ?error= to returnUrl, and /sign-in is the
+    // only screen that renders those codes. Sending it to a RequireAuth route would bounce an
+    // unauthenticated user back here with the error stripped — a silent failure on every Google
+    // path, not just invites. /sign-in then forwards to returnTo once the session exists.
+    const signInPath = destination
+      ? `/sign-in?returnTo=${encodeURIComponent(destination)}`
+      : "/sign-in"
+    const returnUrl = encodeURIComponent(`${window.location.origin}${signInPath}`)
     window.location.assign(`${apiBaseUrl}/api/auth/login/google?returnUrl=${returnUrl}`)
   }
 

@@ -31,9 +31,14 @@ export function AppShell() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <p className="text-muted-foreground">
-              Create a league for a tournament and invite your friends.
+              Create a league for a tournament and invite your friends — or join one with a code.
             </p>
-            <Button onClick={() => navigate("/app/leagues")}>My leagues</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => navigate("/app/leagues")}>My leagues</Button>
+              <Button variant="outline" onClick={() => navigate("/app/leagues/join")}>
+                Join a league
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </main>

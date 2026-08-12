@@ -587,36 +587,39 @@ client is live breaks join, leave, and transfer.
 
 #### Automated
 
-- [x] 2.1 Server builds: `cd src/server && dotnet build`
+- [x] 2.1 Server builds: `cd src/server && dotnet build` — 43bb9ff
 
 #### Manual
 
-- [x] 2.2 Second account joins with a valid code and the league appears in their list
-- [x] 2.3 Re-joining the same code returns 200 and leaves member count unchanged
-- [x] 2.4 Unknown and blank codes return 404; a lowercase valid code returns 200
-- [x] 2.5 Detail returns both members with display names and roles, oldest first
-- [x] 2.6 Member leaves → 204 and the league leaves their list
-- [x] 2.7 Organizer attempting to leave with another member present gets 409
-- [x] 2.8 Solo organizer leaves → 204 and the league plus its child rows are deleted
-- [x] 2.9 Transfer flips organizer for both accounts; old organizer can then leave
-- [x] 2.10 Transfer rejections: non-member 400, member caller 403, stranger 404
+- [x] 2.2 Second account joins with a valid code and the league appears in their list — 43bb9ff
+- [x] 2.3 Re-joining the same code returns 200 and leaves member count unchanged — 43bb9ff
+- [x] 2.4 Unknown and blank codes return 404; a lowercase valid code returns 200 — 43bb9ff
+- [x] 2.5 Detail returns both members with display names and roles, oldest first — 43bb9ff
+- [x] 2.6 Member leaves → 204 and the league leaves their list — 43bb9ff
+- [x] 2.7 Organizer attempting to leave with another member present gets 409 — 43bb9ff
+- [x] 2.8 Solo organizer leaves → 204 and the league plus its child rows are deleted — 43bb9ff
+- [x] 2.9 Transfer flips organizer for both accounts; old organizer can then leave — 43bb9ff
+- [x] 2.10 Transfer rejections: non-member 400, member caller 403, stranger 404 — 43bb9ff
 
 ### Phase 3: Client — the join flow
 
 #### Automated
 
-- [ ] 3.1 Client builds: `cd src/client && npm run build`
-- [ ] 3.2 Lint passes: `cd src/client && npm run lint`
+- [x] 3.1 Client builds: `cd src/client && npm run build`
+- [x] 3.2 Lint passes: `cd src/client && npm run lint`
 
 #### Manual
 
-- [ ] 3.3 Typing a valid code joins and lands on the league page
-- [ ] 3.4 `/app/leagues/join/:code` prefills and does not auto-join
-- [ ] 3.5 Signed-out link → email sign-in → returns to the prefilled join page
-- [ ] 3.6 Signed-out link → Google sign-in → returns to the prefilled join page
-- [ ] 3.7 Bad code shows the inline message without navigating
-- [ ] 3.8 "Copy invite link" produces a URL that works in a second browser profile
-- [ ] 3.9 A failing Google sign-in still lands on `/sign-in` with its error message
+- [ ] 3.10 Playwright smoke still green: `cd src/client && npm run e2e` (plan-review F4 — the suite
+  asserts the post-register redirect lands on `/app`, the exact navigation this phase rewrites; it
+  does not auto-start the stack, so it runs during the manual pass)
+- [x] 3.3 Typing a valid code joins and lands on the league page
+- [x] 3.4 `/app/leagues/join/:code` prefills and does not auto-join
+- [x] 3.5 Signed-out link → email sign-in → returns to the prefilled join page
+- [x] 3.6 Signed-out link → Google sign-in → returns to the prefilled join page
+- [x] 3.7 Bad code shows the inline message without navigating
+- [x] 3.8 "Copy invite link" produces a URL that works in a second browser profile
+- [x] 3.9 A failing Google sign-in still lands on `/sign-in` with its error message
 
 ### Phase 4: Client — roster, leave, transfer
 

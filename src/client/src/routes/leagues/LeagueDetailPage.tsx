@@ -18,7 +18,9 @@ export function LeagueDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  // Which of the two copy buttons last succeeded — one mechanism, so the confirmations cannot
+  // both light up at once.
+  const [copied, setCopied] = useState<"code" | "link" | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -35,14 +37,17 @@ export function LeagueDetailPage() {
     })()
   }, [id])
 
-  const copyInviteCode = async () => {
-    if (!league) return
+  const copy = async (what: "code" | "link", value: string) => {
     try {
-      await navigator.clipboard.writeText(league.inviteCode)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(value)
+      setCopied(what)
+      window.setTimeout(() => setCopied(null), 2000)
     } catch {
-      setError("Could not copy the invite code — copy it by hand.")
+      setError(
+        what === "code"
+          ? "Could not copy the invite code — copy it by hand."
+          : "Could not copy the invite link — copy the code instead.",
+      )
     }
   }
 
@@ -91,16 +96,35 @@ export function LeagueDetailPage() {
         <Card>
           <CardHeader><CardTitle>Invite code</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <code className="rounded border border-input bg-background px-3 py-2 text-lg tracking-widest">
                 {league.inviteCode}
               </code>
-              <Button variant="outline" size="sm" onClick={() => void copyInviteCode()}>
-                {copied ? "Copied" : "Copy"}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void copy("code", league.inviteCode)}
+              >
+                {copied === "code" ? "Copied" : "Copy"}
+              </Button>
+              {/* The link is what actually gets pasted into a chat — it carries the code and
+                  survives sign-in, so a friend without an account lands back on the prefilled
+                  join page. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  void copy(
+                    "link",
+                    `${window.location.origin}/app/leagues/join/${league.inviteCode}`,
+                  )
+                }
+              >
+                {copied === "link" ? "Link copied" : "Copy invite link"}
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Share this code with friends so they can join the league.
+              Share the code or the link with friends so they can join the league.
             </p>
             <div className="flex flex-wrap gap-4 text-sm">
               <span>{league.tournamentName}</span>

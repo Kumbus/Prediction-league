@@ -1,4 +1,4 @@
-// Member-facing league shapes — mirrors LeaguesController's response records (S-03).
+// Member-facing league shapes — mirrors LeaguesController's response records (S-03, S-05).
 // Kept out of admin/types.ts: these screens are for every signed-in user, not just admins.
 
 // Matches the C# ScoringParameter enum member names. Append-only server-side, so extending
@@ -25,12 +25,25 @@ export interface LeagueSummaryResponse {
   memberCount: number
 }
 
+// Matches the C# MembershipRole enum member names.
+export type MembershipRole = "Organizer" | "Member"
+
+export interface LeagueMember {
+  userId: string
+  displayName: string
+  role: MembershipRole
+  joinedUtc: string
+}
+
 export interface LeagueDetailResponse extends LeagueSummaryResponse {
   inviteCode: string
   // Scoring freezes once the league's tournament has its first kickoff (S-04) — the server
   // derives it, so the UI hides the edit affordance instead of discovering it via a 409.
   isScoringLocked: boolean
   scoringRules: ScoringRuleDto[]
+  // The roster (S-05), oldest member first. Only the detail response carries it; the list page
+  // renders memberCount instead so it does not pay for a roster per league.
+  members: LeagueMember[]
 }
 
 // Server-side floor and ceiling for a rule's points. The floor is 1: a parameter that does not
