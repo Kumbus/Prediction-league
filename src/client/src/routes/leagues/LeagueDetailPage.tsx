@@ -2,14 +2,15 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { LeagueDetailResponse } from "@/leagues/types"
+import { MembersCard } from "@/components/leagues/MembersCard"
 import { ScoringCard } from "@/components/leagues/ScoringCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
-// One league: what it is bound to, who is in it, the invite code to share (FR-007), and the
-// scoring config — editable by the organizer until the tournament starts (S-04). The Scoring
-// card owns that whole interaction; join-by-code is still S-05.
+// One league: what it is bound to, the invite code and link to share (FR-007), the scoring config,
+// and the roster. The page is a composition of cards that own their own interactions — Scoring
+// (S-04) the rule editor, Members (S-05) the roster plus leave and transfer.
 export function LeagueDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -136,6 +137,8 @@ export function LeagueDetailPage() {
         </Card>
 
         <ScoringCard league={league} onLeagueChange={setLeague} />
+
+        <MembersCard league={league} onLeagueChange={setLeague} />
       </div>
     </div>
   )

@@ -605,34 +605,34 @@ client is live breaks join, leave, and transfer.
 
 #### Automated
 
-- [x] 3.1 Client builds: `cd src/client && npm run build`
-- [x] 3.2 Lint passes: `cd src/client && npm run lint`
+- [x] 3.1 Client builds: `cd src/client && npm run build` — 4fc5f9f
+- [x] 3.2 Lint passes: `cd src/client && npm run lint` — 4fc5f9f
 
 #### Manual
 
 - [ ] 3.10 Playwright smoke still green: `cd src/client && npm run e2e` (plan-review F4 — the suite
   asserts the post-register redirect lands on `/app`, the exact navigation this phase rewrites; it
   does not auto-start the stack, so it runs during the manual pass)
-- [x] 3.3 Typing a valid code joins and lands on the league page
-- [x] 3.4 `/app/leagues/join/:code` prefills and does not auto-join
-- [x] 3.5 Signed-out link → email sign-in → returns to the prefilled join page
-- [x] 3.6 Signed-out link → Google sign-in → returns to the prefilled join page
-- [x] 3.7 Bad code shows the inline message without navigating
-- [x] 3.8 "Copy invite link" produces a URL that works in a second browser profile
-- [x] 3.9 A failing Google sign-in still lands on `/sign-in` with its error message
+- [x] 3.3 Typing a valid code joins and lands on the league page — 4fc5f9f
+- [x] 3.4 `/app/leagues/join/:code` prefills and does not auto-join — 4fc5f9f
+- [x] 3.5 Signed-out link → email sign-in → returns to the prefilled join page — 4fc5f9f
+- [x] 3.6 Signed-out link → Google sign-in → returns to the prefilled join page — 4fc5f9f
+- [x] 3.7 Bad code shows the inline message without navigating — 4fc5f9f
+- [x] 3.8 "Copy invite link" produces a URL that works in a second browser profile — 4fc5f9f
+- [x] 3.9 A failing Google sign-in still lands on `/sign-in` with its error message — 4fc5f9f
 
 ### Phase 4: Client — roster, leave, transfer
 
 #### Automated
 
-- [ ] 4.1 Client builds: `cd src/client && npm run build`
-- [ ] 4.2 Lint passes: `cd src/client && npm run lint`
+- [x] 4.1 Client builds: `cd src/client && npm run build`
+- [x] 4.2 Lint passes: `cd src/client && npm run lint`
 
 #### Manual
 
-- [ ] 4.3 Roster lists both accounts with correct badges
-- [ ] 4.4 Member sees Leave only; an organizer with other members sees Transfer only
-- [ ] 4.5 Leaving returns to the list and the league is gone
-- [ ] 4.6 Transfer flips both views without reload; new organizer can edit scoring rules
-- [ ] 4.7 After transferring, the old organizer's Leave works
-- [ ] 4.8 A solo league offers no Transfer, but "Leave and delete league" works and removes it
+- [x] 4.3 Roster lists both accounts with correct badges
+- [x] 4.4 Member sees Leave only; an organizer with other members sees Transfer only
+- [x] 4.5 Leaving returns to the list and the league is gone
+- [x] 4.6 Transfer flips both views without reload; new organizer can edit scoring rules
+- [x] 4.7 After transferring, the old organizer's Leave works
+- [x] 4.8 A solo league offers no Transfer, but "Leave and delete league" works and removes it
