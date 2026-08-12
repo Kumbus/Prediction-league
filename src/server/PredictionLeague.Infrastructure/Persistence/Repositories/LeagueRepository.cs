@@ -153,7 +153,19 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             league.Memberships.Remove(membership);
         }
 
-        await Context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await Context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Someone already deleted what this call is deleting — the same user leaving from two
+            // tabs, most likely. EF Core compares affected-row counts on every delete, so the
+            // loser sees this even without a concurrency token. The caller asked for the row to be
+            // gone and it is gone, so this is success, not a conflict: the same idempotency
+            // JoinAsync gives the mirror-image race.
+            Context.ChangeTracker.Clear();
+        }
     }
 
     // The organizer is represented twice — League.OrganizerUserId and a Role = Organizer membership
@@ -172,7 +184,18 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
         target.Role = MembershipRole.Organizer;
         league.OrganizerUserId = newOrganizerUserId;
 
-        await Context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await Context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Another transfer committed between this call's read and its write. Its snapshot
+            // demoted an organizer that is no longer the organizer, so saving anyway would leave
+            // two Role = Organizer rows with OrganizerUserId naming only one. Refuse instead —
+            // translated at this boundary so the caller answers 409 without naming an EF type.
+            throw new LeagueModifiedException(league.Id, ex);
+        }
     }
 
     // LeagueMembership.UserId has no FK to AspNetUsers, so the display name comes from an explicit
@@ -216,19 +239,30 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             // worth chasing.
         }
 
+        // The two failures are caught separately, and each only around the call that can raise it.
+        // A single try over both would let *any* InvalidOperationException out of
+        // SaveChangesAsync — a tracking or validation bug, say — be reported to the user as "could
+        // not allocate an invite code", hiding the real cause behind a 503.
+        try
+        {
+            league.InviteCode = await nextCode(cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // The generator exhausted its own budget looking for a free code.
+            throw new InviteCodeCollisionException(league.InviteCode, ex);
+        }
+
         try
         {
             // A failed SaveChangesAsync leaves the graph tracked as Added, so re-coding the same
             // instance and saving again retries the insert whole.
-            league.InviteCode = await nextCode(cancellationToken);
             await Context.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex) when (ex is DbUpdateException dbEx && IsInviteCodeCollision(dbEx)
-                                   || ex is InvalidOperationException)
+        catch (DbUpdateException ex) when (IsInviteCodeCollision(ex))
         {
-            // Either the retry collided too, or the generator exhausted its own budget looking for
-            // a free code. Both are "no code available right now" — one domain exception, so the
-            // caller never has to name an EF Core or provider type.
+            // The retry collided too. One domain exception either way, so the caller never has to
+            // name an EF Core or provider type.
             throw new InviteCodeCollisionException(league.InviteCode, ex);
         }
     }

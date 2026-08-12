@@ -343,7 +343,18 @@ public class LeaguesController : ControllerBase
                 detail: "That user is not a member of this league.",
                 statusCode: StatusCodes.Status400BadRequest);
 
-        await _leagues.TransferOrganizerAsync(league, request.UserId, cancellationToken);
+        try
+        {
+            await _leagues.TransferOrganizerAsync(league, request.UserId, cancellationToken);
+        }
+        catch (LeagueModifiedException)
+        {
+            // Someone else transferred the league first. A state conflict, not bad input — the
+            // caller's view of who organizes this league is simply stale.
+            return Problem(
+                detail: "This league was changed by someone else. Reload it and try again.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
 
         var tournament = await _tournaments.GetByIdAsync(league.TournamentId, cancellationToken);
         var isScoringLocked = await IsScoringLockedAsync(league.TournamentId, cancellationToken);

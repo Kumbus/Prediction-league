@@ -41,8 +41,10 @@ export function JoinLeaguePage() {
       // The server masks an unknown code and a league the caller cannot see behind one 404, and
       // ProblemDetails' title wins over its detail in ApiError.message — so say it plainly here.
       setError(
-        err instanceof ApiError && err.status === 404
-          ? "No league found for that invite code."
+        err instanceof ApiError
+          ? err.status === 404
+            ? "No league found for that invite code."
+            : err.problem?.detail ?? err.message
           : err instanceof Error
             ? err.message
             : "Could not join the league.",

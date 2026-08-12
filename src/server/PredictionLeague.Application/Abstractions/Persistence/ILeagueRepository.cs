@@ -50,7 +50,9 @@ public interface ILeagueRepository : IRepository<League>
     // Hands the league to another member in one save: League.OrganizerUserId, the outgoing
     // organizer's role, and the incoming organizer's role all move together, so the two
     // representations of "who organizes this" can never disagree. Throws InvalidOperationException
-    // when the target has no membership row — the caller validates first.
+    // when the target has no membership row — the caller validates first — and
+    // LeagueModifiedException when a concurrent transfer already moved the league, which would
+    // otherwise let a stale snapshot write the two representations out of step.
     Task TransferOrganizerAsync(League league, Guid newOrganizerUserId, CancellationToken cancellationToken = default);
 
     // The league's roster with display names, oldest member first. Resolves names by an explicit

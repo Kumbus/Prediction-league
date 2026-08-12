@@ -17,6 +17,11 @@ public class League
     public ICollection<ScoringRule> ScoringRules { get; set; } = [];
 
     public ICollection<LeagueMembership> Memberships { get; set; } = [];
+
+    // Concurrency token. The organizer is represented twice — OrganizerUserId here and a
+    // Role = Organizer membership row — and two transfers that both read before either commits
+    // would leave the pair disagreeing. Database-generated; never set by hand.
+    public byte[]? RowVersion { get; set; }
 }
 
 public class LeagueMembership

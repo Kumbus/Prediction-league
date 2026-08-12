@@ -7,9 +7,20 @@
 // query param into an open redirect.
 export function safeReturnTo(value: string | null | undefined): string | null {
   if (!value) return null
-  if (!value.startsWith("/")) return null
-  if (value.startsWith("//") || value.startsWith("/\\")) return null
-  return value
+
+  // Strip C0 controls and DEL before testing the shape. Browsers drop tab/CR/LF *while parsing* a
+  // URL, so a tab wedged after the leading slash reaches the network as "//evil.com" — a prefix
+  // check against the raw string would wave it straight through.
+  const candidate = Array.from(value)
+    .filter((ch) => {
+      const code = ch.charCodeAt(0)
+      return code > 0x1f && code !== 0x7f
+    })
+    .join("")
+
+  if (!candidate.startsWith("/")) return null
+  if (candidate.startsWith("//") || candidate.startsWith("/\\")) return null
+  return candidate
 }
 
 // RequireAuth stores the blocked location as a router Location *object*, so the path has to be

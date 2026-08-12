@@ -15,6 +15,11 @@ public class LeagueConfiguration : IEntityTypeConfiguration<League>
 
         builder.HasIndex(l => l.InviteCode).IsUnique();
 
+        // Guards read-then-write on the league row itself — today that is the organizer transfer,
+        // whose two halves would otherwise drift apart under concurrent calls. Inserts are not
+        // checked, so the invite-code retry (which re-saves a still-Added graph) is unaffected.
+        builder.Property(l => l.RowVersion).IsRowVersion();
+
         // Owned children: deleting a league removes its scoring config and memberships.
         builder.HasMany(l => l.ScoringRules)
             .WithOne()
