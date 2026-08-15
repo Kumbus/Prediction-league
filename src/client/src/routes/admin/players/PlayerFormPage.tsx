@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { apiFetch } from "@/lib/api"
-import type { NationalityResponse, PlayerPosition, PlayerResponse } from "@/admin/types"
+import type {
+  NationalityResponse,
+  PlayerPosition,
+  PlayerResponse,
+  TeamResponse,
+} from "@/admin/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,16 +28,23 @@ export function PlayerFormPage() {
   const [clubTeamId, setClubTeamId] = useState("")
   const [nationalTeamId, setNationalTeamId] = useState("")
   const [nats, setNats] = useState<NationalityResponse[]>([])
+  const [teams, setTeams] = useState<TeamResponse[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     void (async () => {
       try {
-        const list = await apiFetch<NationalityResponse[]>("/api/nationalities")
+        // The same team list that backs the match form's home/away pickers — linking a player to
+        // a team is what puts them in a match's first-scorer picker, so it cannot be a pasted Guid.
+        const [list, teamList] = await Promise.all([
+          apiFetch<NationalityResponse[]>("/api/nationalities"),
+          apiFetch<TeamResponse[]>("/api/teams"),
+        ])
         setNats(list)
+        setTeams(teamList)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load nationalities.")
+        setError(err instanceof Error ? err.message : "Failed to load nationalities and teams.")
       }
     })()
   }, [])
@@ -138,12 +150,28 @@ export function PlayerFormPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="club">Club team id (GUID)</Label>
-                <Input id="club" value={clubTeamId} onChange={(e) => setClubTeamId(e.target.value)} />
+                <Label htmlFor="club">Club team</Label>
+                <select
+                  id="club"
+                  className="rounded border border-input bg-background px-3 py-2"
+                  value={clubTeamId}
+                  onChange={(e) => setClubTeamId(e.target.value)}
+                >
+                  <option value="">— none —</option>
+                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="natTeam">National team id (GUID)</Label>
-                <Input id="natTeam" value={nationalTeamId} onChange={(e) => setNationalTeamId(e.target.value)} />
+                <Label htmlFor="natTeam">National team</Label>
+                <select
+                  id="natTeam"
+                  className="rounded border border-input bg-background px-3 py-2"
+                  value={nationalTeamId}
+                  onChange={(e) => setNationalTeamId(e.target.value)}
+                >
+                  <option value="">— none —</option>
+                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
               </div>
             </div>
             {error && <div role="alert" className="text-sm text-destructive">{error}</div>}

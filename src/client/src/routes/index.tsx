@@ -16,6 +16,7 @@ import { LeaguesListPage } from "./leagues/LeaguesListPage"
 import { LeagueFormPage } from "./leagues/LeagueFormPage"
 import { LeagueDetailPage } from "./leagues/LeagueDetailPage"
 import { JoinLeaguePage } from "./leagues/JoinLeaguePage"
+import { PredictionsPage } from "./leagues/PredictionsPage"
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: "/app/leagues/join", element: <JoinLeaguePage /> },
       { path: "/app/leagues/join/:code", element: <JoinLeaguePage /> },
       { path: "/app/leagues/:id", element: <LeagueDetailPage /> },
+      { path: "/app/leagues/:id/predictions", element: <PredictionsPage /> },
     ],
   },
   {

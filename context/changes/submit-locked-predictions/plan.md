@@ -467,8 +467,8 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Automated
 
-- [x] 2.1 Solution builds: `cd src/server && dotnet build`
-- [x] 2.2 API boots and serves the new routes
+- [x] 2.1 Solution builds: `cd src/server && dotnet build` — c8b266d
+- [x] 2.2 API boots and serves the new routes — c8b266d
 
 #### Manual
 
@@ -491,8 +491,8 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Automated
 
-- [ ] 3.1 Client builds: `cd src/client && npm run build`
-- [ ] 3.2 Lint passes: `cd src/client && npm run lint`
+- [x] 3.1 Client builds: `cd src/client && npm run build`
+- [x] 3.2 Lint passes: `cd src/client && npm run lint`
 
 #### Manual
 

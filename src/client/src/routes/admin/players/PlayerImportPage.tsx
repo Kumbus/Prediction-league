@@ -77,7 +77,10 @@ export function PlayerImportPage() {
               className="rounded border border-input bg-background px-3 py-2"
             />
             <p className="text-xs text-muted-foreground">
-              Headers: Name,NationalityCode,Position,DateOfBirth,HeightCm,ExternalPlayerId
+              Headers: Name,NationalityCode,Position,DateOfBirth,HeightCm,ExternalPlayerId,ClubTeam,NationalTeam.
+              ClubTeam and NationalTeam name an existing team (case-insensitive) and are what make
+              a player pickable as a match's first scorer; an unknown name is a row conflict, not a
+              new team. Leaving them blank keeps the player's current links.
             </p>
           </div>
           <div className="grid gap-2">

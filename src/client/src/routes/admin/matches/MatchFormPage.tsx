@@ -85,6 +85,12 @@ export function MatchFormPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // The round is what the predictions screen navigates, fills and saves by, so a blank one is
+    // caught here rather than surfaced as a 400 from the server.
+    if (!round.trim()) {
+      setError("Round is required.")
+      return
+    }
     setBusy(true)
     setError(null)
     const body = {
@@ -94,7 +100,7 @@ export function MatchFormPage() {
       status,
       homeScore: homeScore === "" ? null : Number(homeScore),
       awayScore: awayScore === "" ? null : Number(awayScore),
-      round: round.trim() || null,
+      round: round.trim(),
     }
     try {
       if (isEdit) {
@@ -192,8 +198,14 @@ export function MatchFormPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="round">Round (optional)</Label>
-              <Input id="round" value={round} onChange={(e) => setRound(e.target.value)} placeholder="Manual" />
+              <Label htmlFor="round">Round</Label>
+              <Input
+                id="round"
+                value={round}
+                onChange={(e) => setRound(e.target.value)}
+                placeholder="Group A - 1"
+                required
+              />
             </div>
 
             {status === "Finished" && (homeScore === "" || awayScore === "") && (
