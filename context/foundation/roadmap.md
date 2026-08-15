@@ -3,7 +3,7 @@ project: "Football Match Prediction App"
 version: 1
 status: draft
 created: 2026-05-28
-updated: 2026-08-12
+updated: 2026-08-15
 prd_version: 1
 main_goal: speed
 top_blocker: external
@@ -37,7 +37,7 @@ Free football prediction games today only run on official organizer sites for th
 | S-02  | admin-seed-tournament      | (admin) add a tournament and have its fixtures + per-match detail ingested   | F-01, F-03         | FR-003, FR-004, FR-005    | done     |
 | S-03  | organizer-create-league    | create a league tied to a seeded tournament                                  | S-01, S-02         | FR-006, US-01             | done     |
 | S-04  | custom-scoring-rules       | define custom scoring rules for a league                                     | S-03               | FR-008, US-01             | done     |
-| S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | proposed |
+| S-05  | invite-and-join-league     | invite friends and join a league via invite code                             | S-03               | FR-007, FR-002, US-01     | done     |
 | S-06  | submit-locked-predictions  | submit predictions for upcoming matches, locked at kickoff                   | S-05, S-02         | FR-009, FR-010, FR-002    | proposed |
 | S-07  | scoring-engine-standings   | see points and standings update automatically after each match              | S-04, S-06, S-02   | FR-011, FR-012, US-01     | proposed |
 
@@ -181,7 +181,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** The social on-ramp. FR-002 requires membership keyed per (user, league) from the start so a member can play in several leagues — this slice locks that keying in.
-- **Status:** proposed
+- **Status:** done
 
 ### S-06: Submit predictions, locked at kickoff
 
@@ -252,3 +252,4 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **S-02: (admin) add a tournament and have its fixtures + per-match detail ingested** — Archived 2026-08-03 → `context/archive/2026-06-08-admin-seed-tournament/`. Lesson: manual match entry (form + CSV) folded in as interim data source while paid API-Football ingest is deferred.
 - **S-03: create a league tied to a seeded tournament** — Archived 2026-08-03 → `context/archive/2026-08-03-organizer-create-league/`. Lesson: controllers must not catch ORM-specific exceptions — the invite-code collision retry moved behind `ILeagueRepository.CreateAsync` as `InviteCodeCollisionException` (recorded in lessons.md).
 - **S-04: define custom scoring rules for a league** — Archived 2026-08-12 → `context/archive/2026-08-03-custom-scoring-rules/`. Lesson: —.
+- **S-05: invite friends and join a league via invite code** — Archived 2026-08-15 → `context/archive/2026-08-12-invite-and-join-league/`. Lesson: —.
