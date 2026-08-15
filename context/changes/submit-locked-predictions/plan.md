@@ -515,8 +515,8 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Automated
 
-- [x] 4.1 Client builds: `cd src/client && npm run build`
-- [x] 4.2 Lint passes: `cd src/client && npm run lint`
+- [x] 4.1 Client builds: `cd src/client && npm run build` — 006e2b6
+- [x] 4.2 Lint passes: `cd src/client && npm run lint` — 006e2b6
 
 #### Manual
 
