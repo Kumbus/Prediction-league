@@ -446,10 +446,10 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Automated
 
-- [x] 1.1 Solution builds: `cd src/server && dotnet build`
-- [x] 1.2 Migration scaffolds without a pending-model diff (`AddPredictions`)
-- [x] 1.3 Migration applies against local Docker SQL on startup
-- [x] 1.4 `GET /health/db` returns healthy against the migrated database
+- [x] 1.1 Solution builds: `cd src/server && dotnet build` — c1fab8f
+- [x] 1.2 Migration scaffolds without a pending-model diff (`AddPredictions`) — c1fab8f
+- [x] 1.3 Migration applies against local Docker SQL on startup — c1fab8f
+- [x] 1.4 `GET /health/db` returns healthy against the migrated database — c1fab8f
 
 #### Manual
 
@@ -467,8 +467,8 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Automated
 
-- [ ] 2.1 Solution builds: `cd src/server && dotnet build`
-- [ ] 2.2 API boots and serves the new routes
+- [x] 2.1 Solution builds: `cd src/server && dotnet build`
+- [x] 2.2 API boots and serves the new routes
 
 #### Manual
 
