@@ -1,7 +1,7 @@
 ---
 change_id: submit-locked-predictions
 title: Submit locked predictions
-status: implementing
+status: implemented
 created: 2026-08-15
 updated: 2026-08-15
 archived_at: null

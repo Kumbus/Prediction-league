@@ -453,15 +453,15 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Manual
 
-- [ ] 1.5 `Predictions` table exists with the unique index on `(LeagueId, UserId, MatchId)`
-- [ ] 1.6 League delete cascades to predictions; match delete cascades too and returns 204, not 500
-- [ ] 1.7 No existing screen regressed
-- [ ] 1.8 Player CSV with `ClubTeam` / `NationalTeam` links players to the named teams
-- [ ] 1.9 A CSV row naming an unknown team is a dry-run conflict and creates no team
-- [ ] 1.10 A player CSV without the new columns imports exactly as before
-- [ ] 1.11 A blank `Round` is refused with a 400 on both the match create and edit routes
-- [ ] 1.12 A match CSV row with a blank `Round` is a dry-run conflict; nothing is written as `"Manual"`
-- [ ] 1.13 Existing `"Manual"` rows still load and are editable to a real round name
+- [x] 1.5 `Predictions` table exists with the unique index on `(LeagueId, UserId, MatchId)` — c1fab8f
+- [x] 1.6 League delete cascades to predictions; match delete cascades too and returns 204, not 500 — c1fab8f
+- [x] 1.7 No existing screen regressed — c1fab8f
+- [x] 1.8 Player CSV with `ClubTeam` / `NationalTeam` links players to the named teams — c1fab8f
+- [x] 1.9 A CSV row naming an unknown team is a dry-run conflict and creates no team — c1fab8f
+- [x] 1.10 A player CSV without the new columns imports exactly as before — c1fab8f
+- [x] 1.11 A blank `Round` is refused with a 400 on both the match create and edit routes — c1fab8f
+- [x] 1.12 A match CSV row with a blank `Round` is a dry-run conflict; nothing is written as `"Manual"` — c1fab8f
+- [x] 1.13 Existing `"Manual"` rows still load and are editable to a real round name — c1fab8f
 
 ### Phase 2: Server — predictions API
 
@@ -472,20 +472,20 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Manual
 
-- [ ] 2.3 Non-member `GET` returns 404, not 403
-- [ ] 2.4 `GET` with no round lands on the round holding the nearest unfinished match
-- [ ] 2.5 Batch of upcoming matches returns every item `Saved` and persists
-- [ ] 2.6 Re-submitting the same round overwrites rather than duplicating
-- [ ] 2.7 Mixed batch returns `Saved` + `Locked`, and the upcoming match is written
-- [ ] 2.8 A kicked-off match is refused even when sent directly via `PredictionLeague.http`
-- [ ] 2.9 Scorer field sent to a league that does not score it returns `Invalid`
-- [ ] 2.10 Scorer id for a player on neither team returns `Invalid`
-- [ ] 2.11 Scorer without a credited team (or team without a scorer) returns `Invalid`
-- [ ] 2.12 A credited team that is neither home nor away returns `Invalid`
-- [ ] 2.13 Own-goal forecast — team A credited, team B player — is accepted and persists both ids
-- [ ] 2.14 `GET revealed` omits pre-kickoff matches entirely
-- [ ] 2.15 Two members store independent forecasts for the same match
-- [ ] 2.16 Two back-to-back saves of the same round both return 200 — no 500 from the unique index
+- [x] 2.3 Non-member `GET` returns 404, not 403 — c8b266d
+- [x] 2.4 `GET` with no round lands on the round holding the nearest unfinished match — c8b266d
+- [x] 2.5 Batch of upcoming matches returns every item `Saved` and persists — c8b266d
+- [x] 2.6 Re-submitting the same round overwrites rather than duplicating — c8b266d
+- [x] 2.7 Mixed batch returns `Saved` + `Locked`, and the upcoming match is written — c8b266d
+- [x] 2.8 A kicked-off match is refused even when sent directly via `PredictionLeague.http` — c8b266d
+- [x] 2.9 Scorer field sent to a league that does not score it returns `Invalid` — c8b266d
+- [x] 2.10 Scorer id for a player on neither team returns `Invalid` — c8b266d
+- [x] 2.11 Scorer without a credited team (or team without a scorer) returns `Invalid` — c8b266d
+- [x] 2.12 A credited team that is neither home nor away returns `Invalid` — c8b266d
+- [x] 2.13 Own-goal forecast — team A credited, team B player — is accepted and persists both ids — c8b266d
+- [x] 2.14 `GET revealed` omits pre-kickoff matches entirely — c8b266d
+- [x] 2.15 Two members store independent forecasts for the same match — c8b266d
+- [x] 2.16 Two back-to-back saves of the same round both return 200 — no 500 from the unique index — c8b266d
 
 ### Phase 3: Client — the predictions screen
 
@@ -496,20 +496,20 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Manual
 
-- [ ] 3.3 Page opens from the league detail page, matches in kickoff order
-- [ ] 3.4 On entry the view scrolls to the live or nearest-upcoming match
-- [ ] 3.5 Round switching loads that round and keeps the round list stable
-- [ ] 3.6 Score-only league shows score inputs and nothing else
-- [ ] 3.7 `CorrectGoalScorer` league shows a credited-team select plus a player picker grouped by team
-- [ ] 3.8 Team A + team-B player saves as an own-goal forecast and reloads showing both choices
-- [ ] 3.9 Card-scoring league shows exactly those card inputs
-- [ ] 3.10 Filling a round and saving once persists everything
-- [ ] 3.11 Kicked-off row renders read-only with the locked note
-- [ ] 3.12 Round where one match kicked off mid-form marks that row locked and saves the rest
-- [ ] 3.13 A rejected row shows the server's reason
-- [ ] 3.14 Admin player form picks club/national team from a dropdown; clearing removes the link
-- [ ] 3.15 A player linked via form or CSV appears in that team's matches' scorer picker
-- [ ] 3.16 The admin match form requires a Round and blocks submit on a blank one
+- [x] 3.3 Page opens from the league detail page, matches in kickoff order — b4edfe5
+- [x] 3.4 On entry the view scrolls to the live or nearest-upcoming match — b4edfe5
+- [x] 3.5 Round switching loads that round and keeps the round list stable — b4edfe5
+- [x] 3.6 Score-only league shows score inputs and nothing else — b4edfe5
+- [x] 3.7 `CorrectGoalScorer` league shows a credited-team select plus a player picker grouped by team — b4edfe5
+- [x] 3.8 Team A + team-B player saves as an own-goal forecast and reloads showing both choices — b4edfe5
+- [x] 3.9 Card-scoring league shows exactly those card inputs — b4edfe5
+- [x] 3.10 Filling a round and saving once persists everything — b4edfe5
+- [x] 3.11 Kicked-off row renders read-only with the locked note — b4edfe5
+- [x] 3.12 Round where one match kicked off mid-form marks that row locked and saves the rest — b4edfe5
+- [x] 3.13 A rejected row shows the server's reason — b4edfe5
+- [x] 3.14 Admin player form picks club/national team from a dropdown; clearing removes the link — b4edfe5
+- [x] 3.15 A player linked via form or CSV appears in that team's matches' scorer picker — b4edfe5
+- [x] 3.16 The admin match form requires a Round and blocks submit on a blank one — b4edfe5
 
 ### Phase 4: Client — post-kickoff reveal
 
@@ -520,8 +520,8 @@ One additive migration (`AddPredictions`) creating a new table. No existing tabl
 
 #### Manual
 
-- [ ] 4.3 Pre-kickoff, another account's forecast is absent from the network response
-- [ ] 4.4 Post-kickoff, both accounts' forecasts appear for both members
-- [ ] 4.5 A past round shows every member's forecasts and no editable inputs
-- [ ] 4.6 Round switching does not carry the previous round's revealed forecasts over
-- [ ] 4.7 A member who forecast nothing does not appear in the revealed list
+- [x] 4.3 Pre-kickoff, another account's forecast is absent from the network response — 006e2b6
+- [x] 4.4 Post-kickoff, both accounts' forecasts appear for both members — 006e2b6
+- [x] 4.5 A past round shows every member's forecasts and no editable inputs — 006e2b6
+- [x] 4.6 Round switching does not carry the previous round's revealed forecasts over — 006e2b6
+- [x] 4.7 A member who forecast nothing does not appear in the revealed list — 006e2b6
