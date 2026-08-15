@@ -5,6 +5,11 @@ namespace PredictionLeague.Application.Abstractions.Players;
 // CSV bulk-import port. PreviewAsync runs the full match logic without persisting;
 // CommitAsync persists in a single transaction. Optional tournamentId binds resolved players
 // to a TournamentSquad row (idempotent).
+//
+// Columns: Name, NationalityCode (both required), then optional Position, DateOfBirth, HeightCm,
+// ExternalPlayerId, ClubTeam, NationalTeam. The two team columns name an *existing* team
+// (case-insensitive) and are what make a player eligible as a match's first scorer; an unknown
+// name is a row conflict rather than a new team.
 public interface IPlayerCsvImporter
 {
     Task<PlayerImportPreview> PreviewAsync(Stream csv, Guid? tournamentId, CancellationToken cancellationToken = default);

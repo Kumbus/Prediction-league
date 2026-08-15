@@ -42,6 +42,27 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
         return await query.ToListAsync(cancellationToken);
     }
 
+    // Same team joins as ListByTournamentAsync, without the events — the predictions screen never
+    // renders them and the lock check only needs KickoffUtc. Ordered by kickoff then match id so
+    // two fixtures at the same instant keep a stable order across calls.
+    public async Task<IReadOnlyList<MatchRoundDto>> ListForPredictionsAsync(Guid tournamentId, CancellationToken cancellationToken = default)
+    {
+        var query =
+            from m in Context.Matches.AsNoTracking().Where(m => m.TournamentId == tournamentId)
+            join home in Context.Teams.AsNoTracking() on m.HomeTeamId equals home.Id
+            join away in Context.Teams.AsNoTracking() on m.AwayTeamId equals away.Id
+            orderby m.KickoffUtc, m.Id
+            select new MatchRoundDto(
+                m.Id,
+                m.Round,
+                m.KickoffUtc,
+                m.Status,
+                new TeamRefDto(home.Id, home.Name, m.HomeScore),
+                new TeamRefDto(away.Id, away.Name, m.AwayScore));
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> AnyKickedOffAsync(Guid tournamentId, DateTimeOffset asOf, CancellationToken cancellationToken = default)
         => await Set.AnyAsync(m => m.TournamentId == tournamentId && m.KickoffUtc <= asOf, cancellationToken);
 }

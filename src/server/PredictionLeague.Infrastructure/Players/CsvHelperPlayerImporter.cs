@@ -10,26 +10,29 @@ using PredictionLeague.Infrastructure.Persistence;
 
 namespace PredictionLeague.Infrastructure.Players;
 
-// CsvHelper-backed importer. Parses rows, resolves nationality + existing-player match,
-// classifies as Create / Update / Skip, optionally writes TournamentSquad rows. Commit runs
-// inside a single SaveChangesAsync; ExternalPlayerId collisions and unknown NationalityCode
-// land in Conflicts and are skipped from commit.
+// CsvHelper-backed importer. Parses rows, resolves nationality + club/national team + existing-
+// player match, classifies as Create / Update / Skip, optionally writes TournamentSquad rows.
+// Commit runs inside a single SaveChangesAsync; ExternalPlayerId collisions, unknown
+// NationalityCode and unknown team names land in Conflicts and are skipped from commit.
 public class CsvHelperPlayerImporter : IPlayerCsvImporter
 {
     private readonly INationalityRepository _nationalities;
     private readonly IPlayerRepository _players;
     private readonly ITournamentSquadRepository _squads;
+    private readonly ITeamRepository _teams;
     private readonly AppDbContext _context;
 
     public CsvHelperPlayerImporter(
         INationalityRepository nationalities,
         IPlayerRepository players,
         ITournamentSquadRepository squads,
+        ITeamRepository teams,
         AppDbContext context)
     {
         _nationalities = nationalities;
         _players = players;
         _squads = squads;
+        _teams = teams;
         _context = context;
     }
 
@@ -72,6 +75,12 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
         foreach (var p in allPlayers.Where(p => p.ExternalPlayerId != 0))
             byExtId.TryAdd(p.ExternalPlayerId, p);
 
+        // Teams are looked up by name, never created: the match importer auto-creates a missing
+        // team because a fixture is meaningless without both sides, but a typo in a player row
+        // would silently mint a junk team that then shows up in every admin team picker.
+        var teamsByName = (await _teams.ListAsync(cancellationToken))
+            .ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
+
         var squadPlayerIds = tournamentId.HasValue
             ? (await _squads.ListByTournamentAsync(tournamentId.Value, cancellationToken)).Select(s => s.PlayerId).ToHashSet()
             : new HashSet<Guid>();
@@ -96,6 +105,20 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
             if (!natByCode.TryGetValue(raw.NationalityCode, out var nationality))
             {
                 conflicts.Add(new PlayerImportConflict(lineNumber, raw.Name, $"Unknown NationalityCode '{raw.NationalityCode}'."));
+                continue;
+            }
+
+            // Both team columns are optional; a blank cell leaves the existing link untouched,
+            // matching the importer's other optional columns. A named team that does not exist is
+            // a row conflict — resolved before anything is written so the row is skipped whole.
+            if (!TryResolveTeam(raw.ClubTeam, teamsByName, out var clubTeam))
+            {
+                conflicts.Add(new PlayerImportConflict(lineNumber, raw.Name, $"Unknown ClubTeam '{raw.ClubTeam!.Trim()}'."));
+                continue;
+            }
+            if (!TryResolveTeam(raw.NationalTeam, teamsByName, out var nationalTeam))
+            {
+                conflicts.Add(new PlayerImportConflict(lineNumber, raw.Name, $"Unknown NationalTeam '{raw.NationalTeam!.Trim()}'."));
                 continue;
             }
 
@@ -130,7 +153,9 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
                     Position = position ?? PlayerPosition.Unknown,
                     DateOfBirth = dob,
                     HeightCm = height,
-                    ExternalPlayerId = ext ?? 0
+                    ExternalPlayerId = ext ?? 0,
+                    ClubTeamId = clubTeam?.Id,
+                    NationalTeamId = nationalTeam?.Id
                 };
                 action = PlayerImportAction.Create;
                 if (persist) await _players.AddAsync(target, cancellationToken);
@@ -145,6 +170,8 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
                 if (dob.HasValue) target.DateOfBirth = dob;
                 if (height.HasValue) target.HeightCm = height;
                 if (ext.HasValue) target.ExternalPlayerId = ext.Value;
+                if (clubTeam is not null) target.ClubTeamId = clubTeam.Id;
+                if (nationalTeam is not null) target.NationalTeamId = nationalTeam.Id;
                 action = PlayerImportAction.Update;
                 if (persist) _players.Update(target);
                 if (target.ExternalPlayerId != 0) byExtId[target.ExternalPlayerId] = target;
@@ -166,6 +193,16 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
         }
 
         return (rows, conflicts, squadsAdded);
+    }
+
+    // Blank cell -> (true, null): "leave it alone". Named but unknown -> false, so the caller
+    // reports a conflict. The two outcomes are deliberately distinct: silently ignoring a typo
+    // would leave the player unlinked and the scorer picker empty with nothing to explain it.
+    private static bool TryResolveTeam(string? raw, Dictionary<string, Team> teamsByName, out Team? team)
+    {
+        team = null;
+        if (string.IsNullOrWhiteSpace(raw)) return true;
+        return teamsByName.TryGetValue(raw.Trim(), out team);
     }
 
     // Natural upsert key for a player: name (case-insensitive) + nationality.
@@ -215,5 +252,7 @@ public class CsvHelperPlayerImporter : IPlayerCsvImporter
         [Name("DateOfBirth"), Optional] public string? DateOfBirth { get; set; }
         [Name("HeightCm"), Optional] public string? HeightCm { get; set; }
         [Name("ExternalPlayerId"), Optional] public string? ExternalPlayerId { get; set; }
+        [Name("ClubTeam"), Optional] public string? ClubTeam { get; set; }
+        [Name("NationalTeam"), Optional] public string? NationalTeam { get; set; }
     }
 }

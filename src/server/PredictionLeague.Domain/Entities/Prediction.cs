@@ -15,8 +15,22 @@ public class Prediction
 
     public int PredictedAwayScore { get; set; }
 
-    // Optional granular guess, scored only if the league's rules award it.
-    public string? PredictedFirstScorer { get; set; }
+    // Optional granular guess, scored only if the league's rules award it. A player reference
+    // rather than a name so scoring compares against MatchEvent.PlayerId by equality (FR-005).
+    public Guid? PredictedFirstScorerPlayerId { get; set; }
+
+    // The team the goal is credited to — the other half of the scorer forecast. Predicting a
+    // player from the *opposing* team here is how an own goal is expressed, which is the same
+    // shape MatchEvent records (PlayerId alongside TeamId).
+    public Guid? PredictedFirstScorerTeamId { get; set; }
+
+    // Card-count guesses, one per card ScoringParameter a league can select. Null when the
+    // league does not score that parameter.
+    public int? PredictedTotalCards { get; set; }
+
+    public int? PredictedYellowCards { get; set; }
+
+    public int? PredictedRedCards { get; set; }
 
     public DateTimeOffset SubmittedUtc { get; set; }
 
