@@ -87,6 +87,7 @@ export function LeagueDetailPage() {
           <Badge variant={league.isOrganizer ? "default" : "secondary"}>
             {league.isOrganizer ? "Organizer" : "Member"}
           </Badge>
+          <Button onClick={() => navigate(`/app/leagues/${league.id}/predictions`)}>Predictions</Button>
           <Button variant="outline" onClick={() => navigate("/app/leagues")}>Back</Button>
         </div>
       </div>

@@ -99,3 +99,100 @@ Content-Type: application/json
 }
 
 ###
+
+### Predictions (S-06)
+# All routes are member-facing: the caller must organize or belong to the league, else 404 — the
+# same masking the league detail route uses, so membership never leaks.
+#
+# The kickoff lock is server-side: a match with KickoffUtc <= now is refused no matter who asks or
+# how. The requests below are the direct-HTTP proof of that — the UI hiding an input is not.
+
+@Round = Round 1
+@MatchId = 00000000-0000-0000-0000-000000000000
+@LockedMatchId = 00000000-0000-0000-0000-000000000000
+@PlayerId = 00000000-0000-0000-0000-000000000000
+@HomeTeamId = 00000000-0000-0000-0000-000000000000
+
+# The round view. With no ?round= the server picks the round holding the earliest unfinished
+# match (the last round once everything has finished). Carries the full ordered round list, the
+# league's scored parameters, the caller's own forecast per match, canPredict, and — only when the
+# league scores CorrectGoalScorer and the match is still open — that match's eligible scorers.
+GET {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions
+Accept: application/json
+
+###
+
+# One specific round. An unknown round name is 404.
+GET {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions?round={{Round}}
+Accept: application/json
+
+###
+
+# Save a round. Always 200 when the request itself is well-formed — the verdict per match is in
+# "outcomes" (Saved | Locked | Invalid) and the refreshed round view comes back alongside it.
+# Optional fields are accepted only when the league scores the matching parameter, and required
+# when it does: send firstScorer* only for a CorrectGoalScorer league, totalCards only for
+# CorrectCardCount, and so on.
+POST {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions
+Content-Type: application/json
+
+{
+  "items": [
+    { "matchId": "{{MatchId}}", "homeScore": 2, "awayScore": 1 }
+  ]
+}
+
+###
+
+# A batch mixing a writable and an already-kicked-off match: expect Saved for the first and Locked
+# for the second, with the first one still written. This is the lock proof — run it with a match
+# whose kickoff an admin has just moved into the past.
+POST {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions
+Content-Type: application/json
+
+{
+  "items": [
+    { "matchId": "{{MatchId}}", "homeScore": 1, "awayScore": 0 },
+    { "matchId": "{{LockedMatchId}}", "homeScore": 3, "awayScore": 3 }
+  ]
+}
+
+###
+
+# An own-goal forecast: the goal is credited to the home team, the scorer plays for the away side.
+# Accepted deliberately — the mismatch between the two picks *is* the own-goal signal.
+POST {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "matchId": "{{MatchId}}",
+      "homeScore": 1,
+      "awayScore": 1,
+      "firstScorerPlayerId": "{{PlayerId}}",
+      "firstScorerTeamId": "{{HomeTeamId}}"
+    }
+  ]
+}
+
+###
+
+# Half a scorer forecast — expect Invalid: a player with no credited team cannot be scored.
+POST {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions
+Content-Type: application/json
+
+{
+  "items": [
+    { "matchId": "{{MatchId}}", "homeScore": 0, "awayScore": 0, "firstScorerPlayerId": "{{PlayerId}}" }
+  ]
+}
+
+###
+
+# Every member's forecasts for the round's matches that have kicked off. Matches before kickoff
+# are absent from the response entirely — absence is what "not revealed yet" means.
+GET {{PredictionLeague_HostAddress}}/api/leagues/{{LeagueId}}/predictions/revealed?round={{Round}}
+Accept: application/json
+
+###

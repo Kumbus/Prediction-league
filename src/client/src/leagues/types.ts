@@ -71,3 +71,112 @@ export const SCORING_DEFAULTS: {
 export const SCORING_LABELS: Record<ScoringParameter, string> = Object.fromEntries(
   SCORING_DEFAULTS.map((d) => [d.parameter, d.label]),
 ) as Record<ScoringParameter, string>
+
+// ---- Predictions (S-06) -----------------------------------------------------------------
+// Mirrors PredictionsController's records one-for-one, so apiFetch needs no mapping layer.
+
+export type MatchStatus = "Scheduled" | "Live" | "Finished"
+
+// A round in the tournament. Ordered by earliest kickoff server-side — Match.Round is free text,
+// so the name never decides the order. isCurrent marks the round in play and does not move when
+// the member switches rounds.
+export interface RoundRef {
+  round: string
+  earliestKickoffUtc: string
+  isCurrent: boolean
+}
+
+// A player who may be picked as first scorer. teamId is the team the player belongs to (the
+// picker groups by it), not the team the goal is credited to — that is a separate choice, which
+// is what makes an own goal expressible.
+export interface EligibleScorer {
+  playerId: string
+  name: string
+  teamId: string
+}
+
+export interface OwnPrediction {
+  homeScore: number
+  awayScore: number
+  firstScorerPlayerId: string | null
+  firstScorerTeamId: string | null
+  totalCards: number | null
+  yellowCards: number | null
+  redCards: number | null
+  submittedUtc: string
+}
+
+export interface MatchPredictionRow {
+  matchId: string
+  round: string
+  kickoffUtc: string
+  status: MatchStatus
+  homeTeamId: string
+  homeTeamName: string
+  homeScore: number | null
+  awayTeamId: string
+  awayTeamName: string
+  awayScore: number | null
+  // The server's verdict on whether this match still accepts writes. Never re-derive it from a
+  // local clock — the client only renders what the server would allow.
+  canPredict: boolean
+  prediction: OwnPrediction | null
+  // Present only when the league scores CorrectGoalScorer and the match is still open.
+  scorers: EligibleScorer[] | null
+}
+
+export interface RoundViewResponse {
+  leagueId: string
+  leagueName: string
+  round: string | null
+  rounds: RoundRef[]
+  // The parameters this league scores — the row renders exactly these inputs.
+  scoredParameters: ScoringParameter[]
+  matches: MatchPredictionRow[]
+}
+
+export interface PredictionSubmissionItem {
+  matchId: string
+  homeScore: number
+  awayScore: number
+  firstScorerPlayerId?: string | null
+  firstScorerTeamId?: string | null
+  totalCards?: number | null
+  yellowCards?: number | null
+  redCards?: number | null
+}
+
+export type PredictionItemStatus = "Saved" | "Locked" | "Invalid"
+
+export interface PredictionOutcome {
+  matchId: string
+  status: PredictionItemStatus
+  detail: string | null
+}
+
+export interface BatchSubmitResponse {
+  outcomes: PredictionOutcome[]
+  round: RoundViewResponse
+}
+
+// One member's forecast for a match that has kicked off. A match before kickoff is absent from
+// the response entirely — absence is what "not revealed yet" means.
+export interface RevealedPrediction {
+  matchId: string
+  userId: string
+  displayName: string
+  homeScore: number
+  awayScore: number
+  firstScorerPlayerId: string | null
+  firstScorerName: string | null
+  firstScorerTeamId: string | null
+  firstScorerTeamName: string | null
+  totalCards: number | null
+  yellowCards: number | null
+  redCards: number | null
+}
+
+export interface RevealedRoundResponse {
+  round: string | null
+  predictions: RevealedPrediction[]
+}

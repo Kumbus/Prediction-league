@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using PredictionLeague.Api.Configuration;
 using PredictionLeague.Infrastructure;
@@ -7,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// Enums cross the wire as their member names, not ordinals. The client's types are string unions
+// ("ExactScore", "Scheduled", "Saved"), so without this a POST carrying "ExactScore" is a 400 and
+// every enum a response returns arrives as a number the UI cannot label.
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

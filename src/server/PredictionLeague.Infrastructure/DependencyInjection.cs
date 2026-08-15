@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IMatchEventTypeRepository, MatchEventTypeRepository>();
         services.AddScoped<INationalityRepository, NationalityRepository>();
         services.AddScoped<ITournamentSquadRepository, TournamentSquadRepository>();
+        services.AddScoped<IPredictionRepository, PredictionRepository>();
         services.AddScoped<IPlayerCsvImporter, CsvHelperPlayerImporter>();
         services.AddScoped<IMatchCsvImporter, CsvHelperMatchImporter>();
         services.AddScoped<IInviteCodeGenerator, RandomInviteCodeGenerator>();

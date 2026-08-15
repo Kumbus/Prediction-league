@@ -221,7 +221,7 @@ public class TournamentsController : ControllerBase
         if (tournament is null) return NotFound();
 
         var validation = await ValidateMatchAsync(request.HomeTeamId, request.AwayTeamId, request.Status,
-            request.HomeScore, request.AwayScore, cancellationToken);
+            request.HomeScore, request.AwayScore, request.Round, cancellationToken);
         if (validation is not null) return validation;
 
         var match = new Match
@@ -230,7 +230,7 @@ public class TournamentsController : ControllerBase
             TournamentId = id,
             ExternalFixtureId = null,
             Season = tournament.Season,
-            Round = string.IsNullOrWhiteSpace(request.Round) ? "Manual" : request.Round.Trim(),
+            Round = request.Round!.Trim(),
             HomeTeamId = request.HomeTeamId,
             AwayTeamId = request.AwayTeamId,
             KickoffUtc = request.KickoffUtc,
@@ -263,7 +263,7 @@ public class TournamentsController : ControllerBase
         if (match is null) return NotFound();
 
         var validation = await ValidateMatchAsync(request.HomeTeamId, request.AwayTeamId, request.Status,
-            request.HomeScore, request.AwayScore, cancellationToken);
+            request.HomeScore, request.AwayScore, request.Round, cancellationToken);
         if (validation is not null) return validation;
 
         match.HomeTeamId = request.HomeTeamId;
@@ -272,7 +272,7 @@ public class TournamentsController : ControllerBase
         match.Status = request.Status;
         match.HomeScore = request.HomeScore;
         match.AwayScore = request.AwayScore;
-        if (!string.IsNullOrWhiteSpace(request.Round)) match.Round = request.Round.Trim();
+        match.Round = request.Round!.Trim();
 
         _matches.Update(match);
         await _matches.SaveChangesAsync(cancellationToken);
@@ -326,11 +326,17 @@ public class TournamentsController : ControllerBase
         }
     }
 
-    // Shared shape checks for create/edit: distinct existing teams; a Finished match needs scores.
+    // Shared shape checks for create/edit: distinct existing teams; a Finished match needs scores;
+    // a round name is required. Round used to default to the literal "Manual", which with manual
+    // entry as the primary data source put every match of a tournament in one round — and the
+    // predictions screen navigates, fills and saves *by round* (S-06).
     private async Task<IActionResult?> ValidateMatchAsync(
         Guid homeTeamId, Guid awayTeamId, MatchStatus status, int? homeScore, int? awayScore,
-        CancellationToken cancellationToken)
+        string? round, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(round))
+            return Problem(detail: "Round is required.", statusCode: StatusCodes.Status400BadRequest);
+
         if (homeTeamId == awayTeamId)
             return Problem(detail: "Home and away teams must differ.", statusCode: StatusCodes.Status400BadRequest);
 

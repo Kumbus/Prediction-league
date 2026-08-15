@@ -7,8 +7,8 @@ using PredictionLeague.Infrastructure.Identity;
 namespace PredictionLeague.Infrastructure.Persistence;
 
 // EF Core context, Identity-aware with Guid keys so existing *UserId Guids line up
-// with AspNetUsers.Id. Exposes the S-02/S-03 domain aggregates; Prediction is owned
-// by S-06 and stays out of the model (no nav prop pulls it in).
+// with AspNetUsers.Id. Exposes the S-02/S-03 domain aggregates plus Prediction, which
+// S-06 brought into the model.
 public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -26,6 +26,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<MatchEventType> MatchEventTypes => Set<MatchEventType>();
     public DbSet<Nationality> Nationalities => Set<Nationality>();
     public DbSet<TournamentSquad> TournamentSquads => Set<TournamentSquad>();
+    public DbSet<Prediction> Predictions => Set<Prediction>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

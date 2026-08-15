@@ -63,7 +63,8 @@ export function MatchImportPage() {
             <p className="text-xs text-muted-foreground">
               Headers: HomeTeam,AwayTeam,KickoffUtc,Status,HomeScore,AwayScore,Round.
               Teams are matched by name and created when missing. KickoffUtc is an ISO timestamp
-              (e.g. 2026-07-20T18:00:00Z).
+              (e.g. 2026-07-20T18:00:00Z). Round is required — a blank one is reported as a row
+              conflict, since members fill and save predictions one round at a time.
             </p>
           </div>
           {error && <div role="alert" className="text-sm text-destructive">{error}</div>}

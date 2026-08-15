@@ -108,6 +108,17 @@ public class CsvHelperMatchImporter : IMatchCsvImporter
                 continue;
             }
 
+            // Round is the unit the predictions screen reads, writes and navigates by, so a blank
+            // one is a conflict rather than a "Manual" placeholder that would collapse every match
+            // in the tournament into one round. Checked before teams are resolved and before the
+            // dedup key is claimed, so a rejected row stages nothing.
+            if (string.IsNullOrWhiteSpace(raw.Round))
+            {
+                conflicts.Add(new MatchImportConflict(lineNumber, "Round is required."));
+                continue;
+            }
+            var round = raw.Round.Trim();
+
             var homeTeam = ResolveTeam(home, teamsByName, newTeams);
             var awayTeam = ResolveTeam(away, teamsByName, newTeams);
 
@@ -117,8 +128,6 @@ public class CsvHelperMatchImporter : IMatchCsvImporter
                 conflicts.Add(new MatchImportConflict(lineNumber, "Duplicate of an existing/earlier match (same teams and kickoff)."));
                 continue;
             }
-
-            var round = string.IsNullOrWhiteSpace(raw.Round) ? "Manual" : raw.Round.Trim();
 
             if (persist)
             {
