@@ -18,6 +18,11 @@ public interface IPredictionRepository : IRepository<Prediction>
     // Every member's forecasts for the given matches, with display names resolved by an explicit
     // join (UserId has no FK to AspNetUsers). The caller decides which matches may be revealed —
     // this read applies no kickoff rule of its own.
+    //
+    // Scoped by league, deliberately *not* by current membership: a forecast belongs to the moment
+    // it was made, so someone who later leaves the league still appears in the reveal for matches
+    // they predicted. S-07 standings depend on the same rule — a leaver's earned points do not
+    // vanish from the table they were earned in.
     Task<IReadOnlyList<MemberPredictionDto>> ListForMatchesAsync(
         Guid leagueId,
         IReadOnlyCollection<Guid> matchIds,
@@ -27,7 +32,8 @@ public interface IPredictionRepository : IRepository<Prediction>
     // under a racing double-submit: read-then-write alone lets two first-time saves of the same
     // round both insert, and the unique index rejects the loser — this absorbs that rejection by
     // re-reading and applying the update once. Last write wins, which is the right semantic for a
-    // member overwriting their own forecast. No EF-shaped exception reaches the caller.
+    // member overwriting their own forecast. No EF-shaped exception reaches the caller: a second
+    // collision on the retry surfaces as PredictionConflictException, not DbUpdateException.
     Task UpsertManyAsync(
         Guid leagueId,
         Guid userId,

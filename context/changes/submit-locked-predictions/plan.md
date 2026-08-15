@@ -54,6 +54,7 @@ Verify by: joining a league from two accounts, typing a round from both, confirm
 - **No changes to ingest or `MatchWithEventsDto`.** Two narrow, named exceptions on the admin surface, both because the slice is unusable without them, and nothing beyond them:
   - *Player team linkage* (Phase 1 §8, Phase 3 §6) — otherwise the scorer picker is empty for every match.
   - *`Round` becomes required* on the match write paths (Phase 1 §9, Phase 3 §6) — otherwise every match lands in one round called "Manual" and the round switcher is meaningless.
+  - *Global `JsonStringEnumConverter`* (`Program.cs`, added during Phase 2) — enums serialized as ordinals while every client type is a string union, which 400'd league creation and left role and rule labels blank. Fixing it is a one-line serializer registration and it changes the wire format of every enum on every endpoint, `MatchWithEventsDto.Status` included. Recorded here after the fact (impl review F5): the fix is right, the plan simply did not anticipate it.
   No other admin field, endpoint, or flow changes.
 - **No cross-league copy** ("apply my forecast to my other leagues") — FR-002 keys predictions per (user, league, match) and each league is filled separately.
 
@@ -225,6 +226,19 @@ Authorization on all three: league must exist and the caller must be organizer o
 - Score bounds: `0..99` for each side; card counts `0..99`. Out of range is `Invalid`.
 - `firstScorerPlayerId` must be in the match's eligible-scorer set, else `Invalid`. `firstScorerTeamId` must be the match's home or away team, else `Invalid`. The two are submitted and validated together — one without the other is `Invalid`, since a player with no credited team cannot be scored and a credited team with no player is not a forecast. The pair is *not* required to agree: a player from team B credited to team A is an own-goal prediction and is accepted.
 - Unknown `matchId`, or a match belonging to a different tournament than the league, is `Invalid` — never a 500.
+
+#### 2a. Addendum — rules settled during implementation and review
+
+Recorded after the fact (impl review F4, F7, F8) so the plan matches what shipped:
+
+- **Optional fields are optional even when scored.** The first-scorer pair and the card counts are accepted when a league scores them and *omitted* freely: a member who leaves one blank simply cannot earn those points, and the rest of the row still saves. The original contract required them symmetrically, which dead-ended any league whose teams have no linked players — the candidate list is empty, so the rule could never be satisfied. A field for a parameter the league does **not** score is still `Invalid`, and half a scorer pair (player without credited team, or the reverse) is still `Invalid`.
+- An unknown `?round=` returns `404` rather than silently falling back to the current round.
+- An empty `items` array is a `400` — the batch-outcome contract covers items that were judged, not a request with nothing in it.
+- The same `matchId` twice in one batch marks the second `Invalid`; `UpsertManyAsync` keys by match id and cannot honour both.
+- The refreshed view returned by `POST` is the round of the first resolvable item. A batch spanning two rounds gets one round's view — unreachable from the client, which always posts a single round.
+- The eligible-scorer list is attached only to rows that are *both* scored for `CorrectGoalScorer` and still open (`canPredict`). A locked row is read-only, and after kickoff the reveal surface carries scorer names instead.
+- **Scorer candidates are resolved once per request**, keyed by team (`IPlayerRepository.ListEligibleScorersByTeamAsync`), and shared between validation and the round view. The per-match lookup this replaced cost two queries per match on both paths, and each round-trip widened the gap between the `now` a batch is judged against and the write that follows.
+- `UpsertManyAsync` absorbs the first unique-index collision by re-reading and updating; a second collision on the retry becomes `PredictionConflictException`, which the controller answers with `409`. No EF-shaped exception reaches the Api layer (`lessons.md:25`).
 
 #### 3. HTTP samples
 

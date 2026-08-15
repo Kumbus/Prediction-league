@@ -14,13 +14,16 @@ public interface IPlayerRepository : IRepository<Player>
     // CSV-import exact-match lookup: (Name, NationalityId) is the natural upsert key.
     Task<Player?> FindByNameAndNationalityAsync(string name, int nationalityId, CancellationToken cancellationToken = default);
 
-    // Players who may be forecast as a match's first scorer: attached to either side via
+    // Players who may be forecast as a first scorer, keyed by team: attached to a team via
     // ClubTeamId or NationalTeamId, narrowed to the tournament's squad *only when that squad has
     // rows* — TournamentSquad is optional and frequently empty, and an empty squad must widen to
     // the team-derived set rather than reject every scorer.
-    Task<IReadOnlyList<EligibleScorerDto>> ListEligibleScorersAsync(
+    //
+    // Keyed by team rather than by match, and taking the whole team set at once, so a round's
+    // candidates cost two queries per request instead of two per match. A team with no linked
+    // players is present in the result with an empty list.
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>>> ListEligibleScorersByTeamAsync(
         Guid tournamentId,
-        Guid homeTeamId,
-        Guid awayTeamId,
+        IReadOnlyCollection<Guid> teamIds,
         CancellationToken cancellationToken = default);
 }

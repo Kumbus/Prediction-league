@@ -30,19 +30,24 @@ public class PlayerRepository : BaseRepository<Player>, IPlayerRepository
             p => p.Name == name && p.NationalityId == nationalityId,
             cancellationToken);
 
-    public async Task<IReadOnlyList<EligibleScorerDto>> ListEligibleScorersAsync(
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>>> ListEligibleScorersByTeamAsync(
         Guid tournamentId,
-        Guid homeTeamId,
-        Guid awayTeamId,
+        IReadOnlyCollection<Guid> teamIds,
         CancellationToken cancellationToken = default)
     {
+        var ids = teamIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, IReadOnlyList<EligibleScorerDto>>();
+
+        // Both team columns are nullable, so the IN list is too — that keeps the whole predicate
+        // in SQL instead of forcing a null guard EF would have to translate around.
+        var nullableIds = ids.Select(id => (Guid?)id).ToList();
         var query = Set
             .AsNoTracking()
-            .Where(p => p.ClubTeamId == homeTeamId || p.NationalTeamId == homeTeamId
-                     || p.ClubTeamId == awayTeamId || p.NationalTeamId == awayTeamId);
+            .Where(p => nullableIds.Contains(p.ClubTeamId) || nullableIds.Contains(p.NationalTeamId));
 
         // The squad narrows the set only when it exists. Probing it separately keeps the empty
-        // case a *widening* rather than an intersection with nothing.
+        // case a *widening* rather than an intersection with nothing. One probe per request: the
+        // answer cannot differ between two teams of the same tournament.
         var hasSquad = await Context.TournamentSquads
             .AsNoTracking()
             .AnyAsync(s => s.TournamentId == tournamentId, cancellationToken);
@@ -50,15 +55,18 @@ public class PlayerRepository : BaseRepository<Player>, IPlayerRepository
             query = query.Where(p => Context.TournamentSquads
                 .Any(s => s.TournamentId == tournamentId && s.PlayerId == p.Id));
 
-        return await query
+        var players = await query
             .OrderBy(p => p.Name)
-            .Select(p => new EligibleScorerDto(
-                p.Id,
-                p.Name,
-                // The team the player belongs to among the two. A player attached to both sides
-                // (club one, national the other) is listed under the home team — the credited
-                // team is a separate choice, so nothing about the forecast is lost.
-                p.ClubTeamId == homeTeamId || p.NationalTeamId == homeTeamId ? homeTeamId : awayTeamId))
+            .Select(p => new { p.Id, p.Name, p.ClubTeamId, p.NationalTeamId })
             .ToListAsync(cancellationToken);
+
+        // Fanned out per team in memory — a player attached to two teams in the set belongs to
+        // both lists, and which one a match shows them under is the caller's call.
+        return ids.ToDictionary(
+            teamId => teamId,
+            teamId => (IReadOnlyList<EligibleScorerDto>)players
+                .Where(p => p.ClubTeamId == teamId || p.NationalTeamId == teamId)
+                .Select(p => new EligibleScorerDto(p.Id, p.Name, teamId))
+                .ToList());
     }
 }

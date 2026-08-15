@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PredictionLeague.Application.Abstractions.Persistence;
+using PredictionLeague.Application.Abstractions.Predictions;
 using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Infrastructure.Persistence.Repositories;
@@ -118,7 +119,17 @@ public class PredictionRepository : BaseRepository<Prediction>, IPredictionRepos
                 await Set.AddAsync(incoming, cancellationToken);
         }
 
-        await Context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await Context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsPredictionCollision(ex))
+        {
+            // Lost the race twice — a third concurrent first-time save landed between the re-read
+            // and this write. Retrying again would be a loop with no bound, so translate it into a
+            // domain conflict the caller can answer with a 409 and let the member re-submit.
+            throw new PredictionConflictException(leagueId, ex);
+        }
     }
 
     private async Task<Dictionary<Guid, Prediction>> LoadTrackedAsync(

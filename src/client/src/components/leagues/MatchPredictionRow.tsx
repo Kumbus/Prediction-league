@@ -148,7 +148,8 @@ export function MatchPredictionRow({
             <div className="grid gap-3 sm:grid-cols-2">
               {/* Two controls, not one: the credited team and the player who scores. Picking one
                   team and a player from the other is an own-goal forecast — a normal two-click
-                  action here rather than a hidden capability. */}
+                  action here rather than a hidden capability. The two clear together: half a pair
+                  is not a forecast and the server rejects it, so that state stays unreachable. */}
               <div className="grid gap-1">
                 <Label htmlFor={`credited-${row.matchId}`}>Goal credited to</Label>
                 <select
@@ -156,7 +157,13 @@ export function MatchPredictionRow({
                   className="rounded border border-input bg-background px-3 py-2"
                   value={draft.firstScorerTeamId}
                   disabled={disabled}
-                  onChange={(e) => set({ firstScorerTeamId: e.target.value })}
+                  onChange={(e) =>
+                    set(
+                      e.target.value === ""
+                        ? { firstScorerTeamId: "", firstScorerPlayerId: "" }
+                        : { firstScorerTeamId: e.target.value },
+                    )
+                  }
                 >
                   <option value="">— none —</option>
                   <option value={row.homeTeamId}>{row.homeTeamName}</option>
@@ -170,7 +177,13 @@ export function MatchPredictionRow({
                   className="rounded border border-input bg-background px-3 py-2"
                   value={draft.firstScorerPlayerId}
                   disabled={disabled}
-                  onChange={(e) => set({ firstScorerPlayerId: e.target.value })}
+                  onChange={(e) =>
+                    set(
+                      e.target.value === ""
+                        ? { firstScorerPlayerId: "", firstScorerTeamId: "" }
+                        : { firstScorerPlayerId: e.target.value },
+                    )
+                  }
                 >
                   <option value="">— none —</option>
                   <optgroup label={row.homeTeamName}>

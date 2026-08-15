@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PredictionLeague.Application.Abstractions.Persistence;
+using PredictionLeague.Application.Abstractions.Predictions;
 using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Api.Controllers;
@@ -26,6 +27,9 @@ public class PredictionsController : ControllerBase
 {
     private const int MaxScore = 99;
     private const int MaxCards = 99;
+
+    private static readonly IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>> NoCandidates =
+        new Dictionary<Guid, IReadOnlyList<EligibleScorerDto>>();
 
     private readonly ILeagueRepository _leagues;
     private readonly IMatchRepository _matches;
@@ -180,6 +184,15 @@ public class PredictionsController : ControllerBase
         var matchesById = matches.ToDictionary(m => m.MatchId);
         var scored = league.ScoringRules.Select(r => r.Parameter).ToHashSet();
 
+        // Scorer candidates for every team the batch touches, resolved once. Per-item lookups would
+        // be two queries each, and each round-trip widens the gap between the "now" this batch is
+        // judged against and the write that follows it.
+        var candidates = await LoadCandidatesAsync(
+            league,
+            scored,
+            items.Select(i => matchesById.GetValueOrDefault(i.MatchId)),
+            cancellationToken);
+
         var outcomes = new List<PredictionOutcomeResponse>(items.Count);
         var toWrite = new List<Prediction>();
         var seen = new HashSet<Guid>();
@@ -208,7 +221,7 @@ public class PredictionsController : ControllerBase
                 continue;
             }
 
-            var invalid = await ValidateItemAsync(item, match, scored, league.TournamentId, cancellationToken);
+            var invalid = ValidateItem(item, match, scored, CandidatesFor(candidates, match));
             if (invalid is not null)
             {
                 outcomes.Add(new PredictionOutcomeResponse(item.MatchId, PredictionItemStatus.Invalid, invalid));
@@ -234,7 +247,18 @@ public class PredictionsController : ControllerBase
         }
 
         // One save for the whole round, so a partially-accepted batch cannot land half-written.
-        await _predictions.UpsertManyAsync(league.Id, userId, toWrite, cancellationToken);
+        try
+        {
+            await _predictions.UpsertManyAsync(league.Id, userId, toWrite, cancellationToken);
+        }
+        catch (PredictionConflictException)
+        {
+            // Concurrent saves of this same round kept beating each other to the insert. A state
+            // conflict, not bad input — nothing was written, so the member simply re-submits.
+            return Problem(
+                detail: "Another save of this round landed first. Reload the round and try again.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
 
         // The refreshed view is the round the batch belongs to — read back from the server so the
         // client replaces its local draft with what was actually stored.
@@ -364,6 +388,9 @@ public class PredictionsController : ControllerBase
                 league.Id, userId, roundMatches.Select(m => m.MatchId).ToList(), cancellationToken))
             .ToDictionary(p => p.MatchId);
 
+        // One lookup for the whole round rather than one per match.
+        var candidates = await LoadCandidatesAsync(league, scored, roundMatches, cancellationToken);
+
         var rows = new List<MatchPredictionRowResponse>(roundMatches.Count);
         foreach (var match in roundMatches)
         {
@@ -373,8 +400,7 @@ public class PredictionsController : ControllerBase
             // renders read-only, and after kickoff the reveal surface carries the names instead.
             IReadOnlyList<EligibleScorerResponse>? scorers = null;
             if (scoresGoalScorer && canPredict)
-                scorers = (await _players.ListEligibleScorersAsync(
-                        league.TournamentId, match.HomeTeam.Id, match.AwayTeam.Id, cancellationToken))
+                scorers = CandidatesFor(candidates, match)
                     .Select(s => new EligibleScorerResponse(s.PlayerId, s.Name, s.TeamId))
                     .ToList();
 
@@ -407,15 +433,50 @@ public class PredictionsController : ControllerBase
         return new RoundViewResponse(league.Id, league.Name, selectedRound, rounds, scored, rows);
     }
 
+    // Scorer candidates for every team the given matches touch, in one lookup. Empty — and no query
+    // at all — when the league does not score the first scorer, since nothing then reads it.
+    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>>> LoadCandidatesAsync(
+        League league,
+        IReadOnlyCollection<ScoringParameter> scored,
+        IEnumerable<MatchRoundDto?> forMatches,
+        CancellationToken cancellationToken)
+    {
+        if (!scored.Contains(ScoringParameter.CorrectGoalScorer)) return NoCandidates;
+
+        var teamIds = forMatches
+            .Where(m => m is not null)
+            .SelectMany(m => new[] { m!.HomeTeam.Id, m.AwayTeam.Id })
+            .Distinct()
+            .ToList();
+
+        return teamIds.Count == 0
+            ? NoCandidates
+            : await _players.ListEligibleScorersByTeamAsync(league.TournamentId, teamIds, cancellationToken);
+    }
+
+    // The two sides' candidates as one list. A player attached to both teams (club one, national
+    // the other) is listed under the home team — the credited team is a separate choice, so nothing
+    // about the forecast is lost.
+    private static IReadOnlyList<EligibleScorerDto> CandidatesFor(
+        IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>> byTeam,
+        MatchRoundDto match)
+    {
+        var home = byTeam.TryGetValue(match.HomeTeam.Id, out var h) ? h : [];
+        var away = byTeam.TryGetValue(match.AwayTeam.Id, out var a) ? a : [];
+        if (home.Count == 0) return away;
+
+        var onHome = home.Select(s => s.PlayerId).ToHashSet();
+        return [.. home, .. away.Where(s => !onHome.Contains(s.PlayerId))];
+    }
+
     // Rules-driven field validation. A field is accepted only if the league scores the matching
     // parameter, and required on exactly the same condition — silently dropping an unscored field
     // would let a member believe they had forecast something the league will never award.
-    private async Task<string?> ValidateItemAsync(
+    private static string? ValidateItem(
         PredictionItemRequest item,
         MatchRoundDto match,
         HashSet<ScoringParameter> scored,
-        Guid tournamentId,
-        CancellationToken cancellationToken)
+        IReadOnlyList<EligibleScorerDto> eligible)
     {
         if (item.HomeScore < 0 || item.HomeScore > MaxScore || item.AwayScore < 0 || item.AwayScore > MaxScore)
             return $"Scores must be between 0 and {MaxScore}.";
@@ -431,17 +492,20 @@ public class PredictionsController : ControllerBase
                 ? "This league does not score the first goal scorer."
                 : null;
 
-        // The forecast is a *pair*: which player scores, and which side the goal is credited to.
-        // One without the other is not a forecast — a player with no credited team cannot be
-        // scored, and a credited team with no player says nothing.
+        // Optional even where the league scores it: a member who leaves the scorer blank simply
+        // cannot earn those points. Requiring it would also dead-end every league whose teams have
+        // no linked players — the candidate list would be empty with no way to satisfy the rule.
+        if (item.FirstScorerPlayerId is null && item.FirstScorerTeamId is null)
+            return null;
+
+        // Half a pair is not a forecast, though: a player with no credited team cannot be scored,
+        // and a credited team with no player says nothing.
         if (item.FirstScorerPlayerId is null || item.FirstScorerTeamId is null)
             return "Pick both a first scorer and the team the goal is credited to.";
 
         if (item.FirstScorerTeamId != match.HomeTeam.Id && item.FirstScorerTeamId != match.AwayTeam.Id)
             return "The credited team must be one of the two teams playing.";
 
-        var eligible = await _players.ListEligibleScorersAsync(
-            tournamentId, match.HomeTeam.Id, match.AwayTeam.Id, cancellationToken);
         if (eligible.All(s => s.PlayerId != item.FirstScorerPlayerId))
             return "That player is not in either team's squad for this match.";
 
@@ -450,11 +514,15 @@ public class PredictionsController : ControllerBase
         return null;
     }
 
+    // A field the league does not score is refused outright rather than dropped — a member must not
+    // believe they forecast something the league will never award. A field it *does* score is
+    // optional, on the same footing as the first scorer: leaving it blank forfeits those points and
+    // nothing else, so an unfilled row still saves its scores.
     private static string? ValidateCard(ScoringParameter parameter, int? value, string label, HashSet<ScoringParameter> scored)
     {
         if (!scored.Contains(parameter))
             return value is null ? null : $"This league does not score {label.ToLowerInvariant()}.";
-        if (value is null) return $"{label} is required.";
+        if (value is null) return null;
         return value < 0 || value > MaxCards ? $"{label} must be between 0 and {MaxCards}." : null;
     }
 
