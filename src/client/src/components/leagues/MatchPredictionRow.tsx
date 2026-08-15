@@ -1,6 +1,7 @@
 import type {
   MatchPredictionRow as MatchPredictionRowData,
   PredictionOutcome,
+  RevealedPrediction,
   ScoringParameter,
 } from "@/leagues/types"
 import type { PredictionDraft } from "@/leagues/drafts"
@@ -19,6 +20,11 @@ interface MatchPredictionRowProps {
   outcome?: PredictionOutcome
   disabled?: boolean
   onChange: (matchId: string, draft: PredictionDraft) => void
+  // Every member's forecast for this match, present only once it has kicked off. Undefined or
+  // empty renders nothing at all — no placeholder, no "hidden until kickoff" teaser that could be
+  // mistaken for a value.
+  revealed?: RevealedPrediction[]
+  currentUserId?: string
 }
 
 const OUTCOME_TEXT: Record<PredictionOutcome["status"], string> = {
@@ -34,6 +40,8 @@ export function MatchPredictionRow({
   outcome,
   disabled,
   onChange,
+  revealed,
+  currentUserId,
 }: MatchPredictionRowProps) {
   const scores = (p: ScoringParameter) => scored.includes(p)
   const set = (patch: Partial<PredictionDraft>) => onChange(row.matchId, { ...draft, ...patch })
@@ -198,6 +206,40 @@ export function MatchPredictionRow({
           ) : (
             <p className="text-muted-foreground">You did not forecast this match.</p>
           )}
+        </div>
+      )}
+
+      {revealed && revealed.length > 0 && (
+        <div className="grid gap-1 border-t border-border pt-3 text-sm">
+          <div className="text-muted-foreground">Everyone's forecasts</div>
+          {revealed.map((p) => (
+            <div key={p.userId} className="flex flex-wrap items-baseline gap-2">
+              <span className={p.userId === currentUserId ? "font-medium" : ""}>
+                {p.displayName}
+                {p.userId === currentUserId && " (you)"}
+              </span>
+              <span className="tabular-nums">
+                {p.homeScore}–{p.awayScore}
+              </span>
+              {p.firstScorerName && (
+                // An own-goal pick reads as the player's name against the other team, because the
+                // credited team is stored alongside the scorer rather than inferred from them.
+                <span className="text-muted-foreground">
+                  {p.firstScorerName}
+                  {p.firstScorerTeamName ? ` → ${p.firstScorerTeamName}` : ""}
+                </span>
+              )}
+              {p.totalCards !== null && (
+                <span className="text-muted-foreground">{p.totalCards} cards</span>
+              )}
+              {p.yellowCards !== null && (
+                <span className="text-muted-foreground">{p.yellowCards} yellow</span>
+              )}
+              {p.redCards !== null && (
+                <span className="text-muted-foreground">{p.redCards} red</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

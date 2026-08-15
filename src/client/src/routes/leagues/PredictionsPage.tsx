@@ -5,9 +5,12 @@ import type {
   BatchSubmitResponse,
   PredictionOutcome,
   PredictionSubmissionItem,
+  RevealedPrediction,
+  RevealedRoundResponse,
   RoundViewResponse,
   ScoringParameter,
 } from "@/leagues/types"
+import { useAuth } from "@/auth/useAuth"
 import type { PredictionDraft } from "@/leagues/drafts"
 import { draftFromRow, sameDraft } from "@/leagues/drafts"
 import { MatchPredictionRow } from "@/components/leagues/MatchPredictionRow"
@@ -24,9 +27,17 @@ function seedDrafts(view: RoundViewResponse): Record<string, PredictionDraft> {
 
 const toNumber = (raw: string): number | null => (raw.trim() === "" ? null : Number(raw))
 
+// The reveal is carried together with the round it was fetched for, so a switch can never paint
+// the previous round's forecasts under the new round's matches while the fetch is in flight.
+interface RevealedForRound {
+  round: string
+  byMatch: Record<string, RevealedPrediction[]>
+}
+
 export function PredictionsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [view, setView] = useState<RoundViewResponse | null>(null)
   // null means "whatever the server considers the round in play" — the first load asks for it by
@@ -34,6 +45,7 @@ export function PredictionsPage() {
   const [round, setRound] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, PredictionDraft>>({})
   const [outcomes, setOutcomes] = useState<Record<string, PredictionOutcome>>({})
+  const [revealed, setRevealed] = useState<RevealedForRound | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -69,6 +81,33 @@ export function PredictionsPage() {
       cancelled = true
     }
   }, [id, round])
+
+  // Everyone's forecasts for the displayed round, but only for matches that have kicked off. A
+  // match missing from this response is what "not revealed yet" means — the UI must never infer
+  // it from a local clock, and there is nothing in the payload to peek at before kickoff.
+  const displayedRound = view?.round ?? null
+  useEffect(() => {
+    if (!id || displayedRound === null) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const response = await apiFetch<RevealedRoundResponse>(
+          `/api/leagues/${id}/predictions/revealed?round=${encodeURIComponent(displayedRound)}`,
+        )
+        if (cancelled) return
+        const byMatch: Record<string, RevealedPrediction[]> = {}
+        for (const p of response.predictions) (byMatch[p.matchId] ??= []).push(p)
+        setRevealed({ round: displayedRound, byMatch })
+      } catch {
+        // The reveal is a bonus surface on top of the round view; failing to load it must not
+        // take the fillable form down with it.
+        if (!cancelled) setRevealed(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, displayedRound])
 
   // Land on the match being played, or the next one up — read off the server's status/canPredict,
   // never off a local clock. Only on the first load: a deliberate round switch should not yank
@@ -250,6 +289,10 @@ export function PredictionsPage() {
                   outcome={outcomes[m.matchId]}
                   disabled={saving}
                   onChange={changeDraft}
+                  revealed={
+                    revealed?.round === view.round ? revealed.byMatch[m.matchId] : undefined
+                  }
+                  currentUserId={user?.id}
                 />
               </div>
             ))
