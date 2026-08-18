@@ -68,6 +68,45 @@ public class PredictionRepository : BaseRepository<Prediction>, IPredictionRepos
         return await query.ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Prediction>> ListForMatchAsync(
+        Guid matchId,
+        CancellationToken cancellationToken = default)
+        => await Set
+            .AsNoTracking()
+            .Where(p => p.MatchId == matchId)
+            .ToListAsync(cancellationToken);
+
+    // Loads the match's predictions *tracked* and applies the computed points, so the untracked
+    // read the scorer worked from never has to be attached. Ids absent from the map are left
+    // alone; ids in the map that no longer belong to this match are ignored — a prediction deleted
+    // between the read and this write must not resurrect as an update.
+    public async Task SetAwardedPointsAsync(
+        Guid matchId,
+        IReadOnlyDictionary<Guid, int?> pointsByPredictionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (pointsByPredictionId.Count == 0) return;
+
+        var rows = await Set
+            .Where(p => p.MatchId == matchId)
+            .ToListAsync(cancellationToken);
+
+        var changed = false;
+        foreach (var row in rows)
+        {
+            if (!pointsByPredictionId.TryGetValue(row.Id, out var points)) continue;
+            if (row.AwardedPoints == points) continue;
+
+            row.AwardedPoints = points;
+            changed = true;
+        }
+
+        // One save for the whole match, so a match is never half-scored. Skipped entirely when a
+        // re-run computed exactly what is already stored — the idempotence the triggers rely on.
+        if (changed)
+            await Context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task UpsertManyAsync(
         Guid leagueId,
         Guid userId,

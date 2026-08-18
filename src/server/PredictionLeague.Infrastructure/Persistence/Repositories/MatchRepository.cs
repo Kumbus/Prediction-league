@@ -17,6 +17,11 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
             .Include(m => m.Events)
             .FirstOrDefaultAsync(m => m.ExternalFixtureId == externalFixtureId, cancellationToken);
 
+    public async Task<Match?> GetWithEventsAsync(Guid matchId, CancellationToken cancellationToken = default)
+        => await Set
+            .Include(m => m.Events)
+            .FirstOrDefaultAsync(m => m.Id == matchId, cancellationToken);
+
     public async Task<IReadOnlyList<MatchWithEventsDto>> ListByTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default)
     {
         var query =

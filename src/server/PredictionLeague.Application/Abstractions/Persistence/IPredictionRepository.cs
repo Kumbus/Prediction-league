@@ -28,6 +28,27 @@ public interface IPredictionRepository : IRepository<Prediction>
         IReadOnlyCollection<Guid> matchIds,
         CancellationToken cancellationToken = default);
 
+    // Every forecast on one match, across *all* leagues — the scoring input. Untracked, matching
+    // ListForUserAsync's stance: the read feeds a computation and the write half below re-reads.
+    Task<IReadOnlyList<Prediction>> ListForMatchAsync(
+        Guid matchId,
+        CancellationToken cancellationToken = default);
+
+    // The write half of scoring, and the reason the read above stays untracked. Every other write
+    // in this layer is an intent-named repository method that owns its save (UpsertManyAsync,
+    // ReplaceScoringRulesAsync, JoinAsync, TransferOrganizerAsync); handing a tracked graph out to
+    // a service that mutates it and calls the generic SaveChangesAsync would break that convention
+    // and make "one save per match" unenforceable — anything else tracked in the same scoped
+    // context would flush with it.
+    //
+    // A null value un-scores that prediction (the match is no longer Finished, or lost its score);
+    // 0 means "scored, earned nothing". One SaveChangesAsync inside the method covers the whole
+    // match, so a match is never half-scored.
+    Task SetAwardedPointsAsync(
+        Guid matchId,
+        IReadOnlyDictionary<Guid, int?> pointsByPredictionId,
+        CancellationToken cancellationToken = default);
+
     // Insert-or-update the batch in one SaveChangesAsync, so a round saves as a unit. Idempotent
     // under a racing double-submit: read-then-write alone lets two first-time saves of the same
     // round both insert, and the unique index rejects the loser — this absorbs that rejection by

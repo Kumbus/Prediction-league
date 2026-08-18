@@ -415,7 +415,7 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Automated
 
-- [x] 1.1 Server builds: `cd src/server && dotnet build`
+- [x] 1.1 Server builds: `cd src/server && dotnet build` — 15a26d2
 
 #### Manual
 
@@ -427,7 +427,7 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Automated
 
-- [ ] 2.1 Server builds: `cd src/server && dotnet build`
+- [x] 2.1 Server builds: `cd src/server && dotnet build`
 
 #### Manual
 

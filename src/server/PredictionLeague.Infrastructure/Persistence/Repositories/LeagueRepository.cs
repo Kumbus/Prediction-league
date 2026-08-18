@@ -34,6 +34,14 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             .Include(l => l.Memberships)
             .FirstOrDefaultAsync(l => l.Id == leagueId, cancellationToken);
 
+    public async Task<IReadOnlyList<League>> ListByTournamentWithRulesAsync(Guid tournamentId, CancellationToken cancellationToken = default)
+        => await Set
+            .AsNoTracking()
+            .Include(l => l.ScoringRules)
+            .Where(l => l.TournamentId == tournamentId)
+            .OrderBy(l => l.Name)
+            .ToListAsync(cancellationToken);
+
     // Same graph as GetWithDetailAsync, tracked — the scoring-rule replace mutates what it returns.
     public async Task<League?> GetForUpdateAsync(Guid leagueId, CancellationToken cancellationToken = default)
         => await Set

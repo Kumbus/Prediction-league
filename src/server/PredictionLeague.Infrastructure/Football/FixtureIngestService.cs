@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Application.Abstractions.Persistence;
+using PredictionLeague.Application.Abstractions.Scoring;
 using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Infrastructure.Football;
@@ -24,6 +25,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
     private readonly ITeamRepository _teams;
     private readonly IPlayerRepository _players;
     private readonly IMatchEventTypeRepository _eventTypes;
+    private readonly IMatchScoringService _scoring;
     private readonly ILogger<FixtureIngestService> _logger;
 
     public FixtureIngestService(
@@ -33,6 +35,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
         ITeamRepository teams,
         IPlayerRepository players,
         IMatchEventTypeRepository eventTypes,
+        IMatchScoringService scoring,
         ILogger<FixtureIngestService> logger)
     {
         _apiClient = apiClient;
@@ -41,6 +44,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
         _teams = teams;
         _players = players;
         _eventTypes = eventTypes;
+        _scoring = scoring;
         _logger = logger;
     }
 
@@ -150,6 +154,22 @@ public sealed class FixtureIngestService : IFixtureIngestService
             // processed match fully consistent.
             await _matches.SaveChangesAsync(cancellationToken);
             fixturesUpserted++;
+
+            // Score after the save, never before, or it scores the pre-ingest result. The timer
+            // path must produce points the same way the admin path does, through the same service.
+            // A scoring failure on one fixture is logged and does not abort the run: a partial
+            // ingest already leaves each processed match consistent, and the rescore endpoint
+            // recovers the rest.
+            try
+            {
+                await _scoring.ScoreMatchAsync(match.Id, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex,
+                    "Scoring failed for fixture {FixtureId} (match {MatchId}); the result is saved but its points are stale.",
+                    fixture.FixtureId, match.Id);
+            }
         }
 
         _logger.LogInformation(

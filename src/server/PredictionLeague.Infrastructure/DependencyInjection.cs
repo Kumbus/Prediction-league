@@ -12,6 +12,7 @@ using PredictionLeague.Application.Abstractions.Leagues;
 using PredictionLeague.Application.Abstractions.Matches;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Players;
+using PredictionLeague.Application.Abstractions.Scoring;
 using PredictionLeague.Infrastructure.Football;
 using PredictionLeague.Infrastructure.Identity;
 using PredictionLeague.Infrastructure.Leagues;
@@ -19,6 +20,7 @@ using PredictionLeague.Infrastructure.Persistence;
 using PredictionLeague.Infrastructure.Matches;
 using PredictionLeague.Infrastructure.Persistence.Repositories;
 using PredictionLeague.Infrastructure.Players;
+using PredictionLeague.Infrastructure.Scoring;
 
 namespace PredictionLeague.Infrastructure;
 
@@ -45,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<INationalityRepository, NationalityRepository>();
         services.AddScoped<ITournamentSquadRepository, TournamentSquadRepository>();
         services.AddScoped<IPredictionRepository, PredictionRepository>();
+        services.AddScoped<IMatchScoringService, MatchScoringService>();
         services.AddScoped<IPlayerCsvImporter, CsvHelperPlayerImporter>();
         services.AddScoped<IMatchCsvImporter, CsvHelperMatchImporter>();
         services.AddScoped<IInviteCodeGenerator, RandomInviteCodeGenerator>();

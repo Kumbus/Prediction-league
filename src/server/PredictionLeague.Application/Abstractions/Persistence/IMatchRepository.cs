@@ -8,6 +8,11 @@ public interface IMatchRepository : IRepository<Match>
     // Looks the fixture up by its API id, including its Events (delete-and-replace target).
     Task<Match?> GetByExternalFixtureIdAsync(int externalFixtureId, CancellationToken cancellationToken = default);
 
+    // One match plus its Events, by primary key. Backs scoring, which needs the result and the
+    // goal/card facts in the same read. Tracked, matching GetByExternalFixtureIdAsync — the event
+    // replace writes through the same graph.
+    Task<Match?> GetWithEventsAsync(Guid matchId, CancellationToken cancellationToken = default);
+
     // Read-side projection for the admin tournament-detail page (resolves team + player +
     // event-type names without nav properties on the entities).
     Task<IReadOnlyList<MatchWithEventsDto>> ListByTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default);
