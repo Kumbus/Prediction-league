@@ -21,11 +21,19 @@ public interface IPredictionRepository : IRepository<Prediction>
     //
     // Scoped by league, deliberately *not* by current membership: a forecast belongs to the moment
     // it was made, so someone who later leaves the league still appears in the reveal for matches
-    // they predicted. S-07 standings depend on the same rule — a leaver's earned points do not
-    // vanish from the table they were earned in.
+    // they predicted. Standings take the opposite stance — ListStandingsAsync below is driven by
+    // the roster, so a leaver drops out of the table even though their forecasts survive here.
     Task<IReadOnlyList<MemberPredictionDto>> ListForMatchesAsync(
         Guid leagueId,
         IReadOnlyCollection<Guid> matchIds,
+        CancellationToken cancellationToken = default);
+
+    // A league's table (FR-012): every *current* member with their total points, how many matches
+    // they have been scored on, and how many forecasts they have made. Driven by LeagueMembership
+    // left-joined to predictions, so a member who never predicted appears with zero and a member
+    // who left does not appear at all. Ordered points descending, then display name.
+    Task<IReadOnlyList<StandingRowDto>> ListStandingsAsync(
+        Guid leagueId,
         CancellationToken cancellationToken = default);
 
     // Every forecast on one match, across *all* leagues — the scoring input. Untracked, matching

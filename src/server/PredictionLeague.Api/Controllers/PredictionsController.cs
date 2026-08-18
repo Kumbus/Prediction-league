@@ -70,7 +70,10 @@ public class PredictionsController : ControllerBase
         int? TotalCards,
         int? YellowCards,
         int? RedCards,
-        DateTimeOffset SubmittedUtc);
+        DateTimeOffset SubmittedUtc,
+        // What this forecast earned (FR-011); null until the match is scored. Rendered only when
+        // non-null, so an unscored finished match reads as "not scored yet" rather than zero.
+        int? AwardedPoints);
 
     public record MatchPredictionRowResponse(
         Guid MatchId,
@@ -129,7 +132,10 @@ public class PredictionsController : ControllerBase
         string? FirstScorerTeamName,
         int? TotalCards,
         int? YellowCards,
-        int? RedCards);
+        int? RedCards,
+        // Same contract as OwnPredictionResponse.AwardedPoints — the reveal doubles as the
+        // per-match scoreboard once the match is scored.
+        int? AwardedPoints);
 
     public record RevealedRoundResponse(string? Round, IReadOnlyList<RevealedPredictionResponse> Predictions);
 
@@ -315,7 +321,8 @@ public class PredictionsController : ControllerBase
                     p.FirstScorerTeamName,
                     p.TotalCards,
                     p.YellowCards,
-                    p.RedCards))
+                    p.RedCards,
+                    p.AwardedPoints))
                 .ToList()));
     }
 
@@ -425,7 +432,8 @@ public class PredictionsController : ControllerBase
                         p.PredictedTotalCards,
                         p.PredictedYellowCards,
                         p.PredictedRedCards,
-                        p.SubmittedUtc)
+                        p.SubmittedUtc,
+                        p.AwardedPoints)
                     : null,
                 scorers));
         }

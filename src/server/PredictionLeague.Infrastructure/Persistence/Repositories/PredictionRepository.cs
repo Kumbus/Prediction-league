@@ -63,9 +63,41 @@ public class PredictionRepository : BaseRepository<Prediction>, IPredictionRepos
                 p.PredictedTotalCards,
                 p.PredictedYellowCards,
                 p.PredictedRedCards,
-                p.SubmittedUtc);
+                p.SubmittedUtc,
+                p.AwardedPoints);
 
         return await query.ToListAsync(cancellationToken);
+    }
+
+    // The roster drives the table: memberships on the outside, predictions aggregated per member,
+    // so a member with no forecasts still gets a row at zero. The display-name join is inner by
+    // construction, matching ListMembersAsync — a membership whose user row is gone is skipped
+    // rather than surfaced nameless.
+    public async Task<IReadOnlyList<StandingRowDto>> ListStandingsAsync(
+        Guid leagueId,
+        CancellationToken cancellationToken = default)
+    {
+        var query =
+            from m in Context.LeagueMemberships.AsNoTracking().Where(m => m.LeagueId == leagueId)
+            join u in Context.Users.AsNoTracking() on m.UserId equals u.Id
+            select new StandingRowDto(
+                m.UserId,
+                u.DisplayName,
+                // Sum over a nullable column is null when nothing is scored yet — a zero row, not
+                // an absent one.
+                Set.Where(p => p.LeagueId == leagueId && p.UserId == m.UserId).Sum(p => p.AwardedPoints) ?? 0,
+                Set.Count(p => p.LeagueId == leagueId && p.UserId == m.UserId && p.AwardedPoints != null),
+                Set.Count(p => p.LeagueId == leagueId && p.UserId == m.UserId));
+
+        var rows = await query.ToListAsync(cancellationToken);
+
+        // Ordered here rather than in SQL: the sort key is a computed aggregate, and a league
+        // roster is friend-group scale, so pushing it down buys nothing and risks the projection
+        // failing to translate.
+        return rows
+            .OrderByDescending(r => r.Points)
+            .ThenBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     public async Task<IReadOnlyList<Prediction>> ListForMatchAsync(
