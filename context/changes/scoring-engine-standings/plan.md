@@ -427,7 +427,7 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Automated
 
-- [x] 2.1 Server builds: `cd src/server && dotnet build`
+- [x] 2.1 Server builds: `cd src/server && dotnet build` — 2b72209
 
 #### Manual
 
@@ -442,9 +442,9 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Automated
 
-- [ ] 3.1 Server builds: `cd src/server && dotnet build`
-- [ ] 3.2 Client builds: `cd src/client && npm run build`
-- [ ] 3.3 Client lints: `cd src/client && npm run lint`
+- [x] 3.1 Server builds: `cd src/server && dotnet build`
+- [x] 3.2 Client builds: `cd src/client && npm run build`
+- [x] 3.3 Client lints: `cd src/client && npm run lint`
 
 #### Manual
 

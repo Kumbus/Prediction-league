@@ -79,6 +79,43 @@ export interface MatchDetailResponse {
   homeScore: number | null
   awayScore: number | null
   round: string
+  // Partial success on the write endpoints: the match saved but its points did not recalculate.
+  // Always false on the read.
+  scoringFailed: boolean
+  scoringMessage: string | null
+}
+
+export interface MatchEventTypeResponse {
+  id: number
+  code: string
+  displayName: string
+  category: "Goal" | "Card" | "Other"
+}
+
+export interface EligiblePlayerResponse {
+  playerId: string
+  name: string
+  teamId: string
+}
+
+// One stored goal/card row, with the ids the editor's selects bind to and the names it renders.
+export interface MatchEventEditDto {
+  id: string
+  matchEventTypeId: number
+  typeCode: string
+  typeDisplayName: string
+  playerId: string
+  playerName: string
+  teamId: string
+  teamName: string
+  minute: number
+  minuteExtra: number | null
+}
+
+export interface MatchEventsResponse {
+  events: MatchEventEditDto[]
+  scoringFailed: boolean
+  scoringMessage: string | null
 }
 
 export interface MatchImportRow {

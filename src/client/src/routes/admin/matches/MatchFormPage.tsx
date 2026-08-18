@@ -6,6 +6,7 @@ import type {
   MatchStatus,
   TeamResponse,
 } from "@/admin/types"
+import { MatchEventsFieldset } from "@/components/admin/MatchEventsFieldset"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,9 @@ export function MatchFormPage() {
   const [newTeamName, setNewTeamName] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The result saved but its points did not recalculate. A warning, not a save error — re-saving
+  // fixes nothing; the rescore endpoint the message names does.
+  const [scoringWarning, setScoringWarning] = useState<string | null>(null)
 
   const loadTeams = async () => {
     const list = await apiFetch<TeamResponse[]>("/api/teams")
@@ -66,6 +70,8 @@ export function MatchFormPage() {
     })()
   }, [matchId, isEdit])
 
+  const teamName = (id: string) => teams.find((t) => t.id === id)?.name ?? "—"
+
   const addTeam = async () => {
     if (!newTeamName.trim()) return
     setError(null)
@@ -93,6 +99,7 @@ export function MatchFormPage() {
     }
     setBusy(true)
     setError(null)
+    setScoringWarning(null)
     const body = {
       homeTeamId,
       awayTeamId,
@@ -103,13 +110,17 @@ export function MatchFormPage() {
       round: round.trim(),
     }
     try {
-      if (isEdit) {
-        await apiFetch<MatchDetailResponse>(`/api/matches/${matchId}`, { method: "PUT", body })
-      } else {
-        await apiFetch<MatchDetailResponse>(`/api/tournaments/${tournamentId}/matches`, {
-          method: "POST",
-          body,
-        })
+      const saved = isEdit
+        ? await apiFetch<MatchDetailResponse>(`/api/matches/${matchId}`, { method: "PUT", body })
+        : await apiFetch<MatchDetailResponse>(`/api/tournaments/${tournamentId}/matches`, {
+            method: "POST",
+            body,
+          })
+      // Stay on the form when the points did not follow the result — leaving would hide the one
+      // message that says what to do about it.
+      if (saved?.scoringFailed) {
+        setScoringWarning(saved.scoringMessage ?? "The match saved, but its points did not update.")
+        return
       }
       navigate(`/admin/tournaments/${tournamentId}`)
     } catch (err) {
@@ -212,6 +223,9 @@ export function MatchFormPage() {
               <p className="text-xs text-muted-foreground">A finished match needs both scores.</p>
             )}
             {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
+            {scoringWarning && (
+              <div role="alert" className="text-sm text-destructive">{scoringWarning}</div>
+            )}
             <div className="flex gap-2">
               <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
               <Button
@@ -225,6 +239,23 @@ export function MatchFormPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Edit mode only: a match being created has no id to hang events on yet. Its own card and
+          its own save — the events endpoint is a separate write from the match one. */}
+      {isEdit && matchId && homeTeamId && awayTeamId && (
+        <Card className="max-w-2xl">
+          <CardHeader><CardTitle>Events</CardTitle></CardHeader>
+          <CardContent>
+            <MatchEventsFieldset
+              matchId={matchId}
+              homeTeamId={homeTeamId}
+              homeTeamName={teamName(homeTeamId)}
+              awayTeamId={awayTeamId}
+              awayTeamName={teamName(awayTeamId)}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

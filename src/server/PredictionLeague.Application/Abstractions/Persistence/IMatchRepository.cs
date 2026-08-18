@@ -13,6 +13,17 @@ public interface IMatchRepository : IRepository<Match>
     // replace writes through the same graph.
     Task<Match?> GetWithEventsAsync(Guid matchId, CancellationToken cancellationToken = default);
 
+    // The match's events with ids and resolved names, ordered as they happened. Backs the admin
+    // goal/card editor, which needs the ids its selects bind to.
+    Task<IReadOnlyList<MatchEventEditDto>> ListEventsForEditAsync(Guid matchId, CancellationToken cancellationToken = default);
+
+    // Replaces a match's whole event set — Clear()-then-add on the tracked collection, the same
+    // pattern ingest uses (FixtureIngestService.cs:172), so orphan deletion behaves identically and
+    // both writers share one semantic. Saving is the caller's call, consistent with the other
+    // repositories. Throws InvalidOperationException when the match does not exist; the caller
+    // checks first.
+    Task ReplaceEventsAsync(Guid matchId, IReadOnlyList<MatchEvent> events, CancellationToken cancellationToken = default);
+
     // Read-side projection for the admin tournament-detail page (resolves team + player +
     // event-type names without nav properties on the entities).
     Task<IReadOnlyList<MatchWithEventsDto>> ListByTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default);
