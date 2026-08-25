@@ -474,8 +474,8 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Automated
 
-- [x] 5.1 Client builds: `cd src/client && npm run build`
-- [x] 5.2 Client lints: `cd src/client && npm run lint`
+- [x] 5.1 Client builds: `cd src/client && npm run build` — de21ae7
+- [x] 5.2 Client lints: `cd src/client && npm run lint` — de21ae7
 
 #### Manual
 
