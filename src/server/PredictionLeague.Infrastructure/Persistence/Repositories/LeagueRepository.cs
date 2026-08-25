@@ -83,13 +83,19 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
         var present = league.ScoringRules.Select(r => r.Parameter).ToHashSet();
         foreach (var (parameter, points) in incoming.Where(kv => !present.Contains(kv.Key)))
         {
-            league.ScoringRules.Add(new ScoringRule
+            var rule = new ScoringRule
             {
                 Id = Guid.NewGuid(),
                 LeagueId = league.Id,
                 Parameter = parameter,
                 Points = points
-            });
+            };
+            league.ScoringRules.Add(rule);
+
+            // Explicit Add for the same reason JoinAsync needs one: the league is tracked and
+            // Unchanged, so EF's IsKeySet heuristic would paint this key-set child Modified and
+            // UPDATE a row that was never inserted.
+            Context.Set<ScoringRule>().Add(rule);
         }
 
         await Context.SaveChangesAsync(cancellationToken);
@@ -122,6 +128,13 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             JoinedUtc = DateTimeOffset.UtcNow
         };
         league.Memberships.Add(membership);
+
+        // Added explicitly, not left to navigation fixup. A child discovered in a tracked parent's
+        // collection is painted by EF's IsKeySet heuristic: the Id is already set, so EF reads it
+        // as an existing row and marks it Modified, emitting an UPDATE against a row that does not
+        // exist. The create path gets away with the same shape only because its League is Added,
+        // which paints the whole graph Added.
+        Context.Set<LeagueMembership>().Add(membership);
 
         try
         {

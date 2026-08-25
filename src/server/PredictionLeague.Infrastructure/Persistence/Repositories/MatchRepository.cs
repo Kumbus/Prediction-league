@@ -51,6 +51,11 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
         {
             e.MatchId = match.Id;
             match.Events.Add(e);
+
+            // Explicit Add: callers build events with an Id already set, and against a tracked
+            // Unchanged match EF's IsKeySet heuristic reads a key-set child as an existing row and
+            // marks it Modified — an UPDATE on a row that was never inserted.
+            Context.Set<MatchEvent>().Add(e);
         }
     }
 
