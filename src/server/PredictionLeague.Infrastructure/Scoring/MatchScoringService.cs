@@ -23,6 +23,16 @@ public sealed class MatchScoringService : IMatchScoringService
     private readonly IMatchEventTypeRepository _eventTypes;
     private readonly ILogger<MatchScoringService> _logger;
 
+    // Per-scope memoisation, not a shared cache. The service is registered Scoped, so these live
+    // exactly one request — or one ingest run, which is the case that pays: ingest scores every
+    // fixture in a tournament through this service, and without these it re-reads the seeded event
+    // dictionary and that tournament's leagues once per fixture instead of once per run.
+    // Both are safe to hold for a scope: the event types are seeded reference data, and a league's
+    // rules lock at the tournament's first kickoff, which has necessarily passed for any match
+    // being scored. Reads are sequential within a scope, so no synchronisation is needed.
+    private IReadOnlyDictionary<int, MatchEventType>? _eventTypesById;
+    private readonly Dictionary<Guid, IReadOnlyDictionary<Guid, IReadOnlyList<ScoringRule>>> _rulesByTournament = [];
+
     public MatchScoringService(
         IMatchRepository matches,
         ILeagueRepository leagues,
@@ -68,14 +78,11 @@ public sealed class MatchScoringService : IMatchScoringService
             return new MatchScoringResult(points.Count, DistinctLeagues(predictions));
         }
 
-        var eventTypesById = (await _eventTypes.GetAllAsync(cancellationToken))
-            .ToDictionary(t => t.Id);
-        var outcome = MatchOutcome.FromMatch(match, eventTypesById);
+        var outcome = MatchOutcome.FromMatch(match, await EventTypesAsync(cancellationToken));
 
         // Rules per league, so one prediction is scored against its own league's config and no
         // other. A league on this tournament with no rules configured scores every prediction as 0.
-        var rulesByLeague = (await _leagues.ListByTournamentWithRulesAsync(match.TournamentId, cancellationToken))
-            .ToDictionary(l => l.Id, l => (IReadOnlyList<ScoringRule>)l.ScoringRules.ToList());
+        var rulesByLeague = await RulesByLeagueAsync(match.TournamentId, cancellationToken);
 
         foreach (var prediction in predictions)
         {
@@ -94,6 +101,21 @@ public sealed class MatchScoringService : IMatchScoringService
             matchId, points.Count, leaguesTouched);
 
         return new MatchScoringResult(points.Count, leaguesTouched);
+    }
+
+    private async Task<IReadOnlyDictionary<int, MatchEventType>> EventTypesAsync(CancellationToken cancellationToken)
+        => _eventTypesById ??= (await _eventTypes.GetAllAsync(cancellationToken)).ToDictionary(t => t.Id);
+
+    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ScoringRule>>> RulesByLeagueAsync(
+        Guid tournamentId, CancellationToken cancellationToken)
+    {
+        if (_rulesByTournament.TryGetValue(tournamentId, out var cached)) return cached;
+
+        var rules = (await _leagues.ListByTournamentWithRulesAsync(tournamentId, cancellationToken))
+            .ToDictionary(l => l.Id, l => (IReadOnlyList<ScoringRule>)l.ScoringRules.ToList());
+
+        _rulesByTournament[tournamentId] = rules;
+        return rules;
     }
 
     private static int DistinctLeagues(IReadOnlyList<Prediction> predictions)

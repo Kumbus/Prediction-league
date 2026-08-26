@@ -45,6 +45,11 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
             .FirstOrDefaultAsync(m => m.Id == matchId, cancellationToken)
             ?? throw new InvalidOperationException($"Match '{matchId}' not found.");
 
+        ReplaceEvents(match, events);
+    }
+
+    public void ReplaceEvents(Match match, IReadOnlyList<MatchEvent> events)
+    {
         match.Events.Clear(); // orphaned required dependents are deleted on SaveChanges
 
         foreach (var e in events)

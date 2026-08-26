@@ -238,7 +238,7 @@ Give the granular scoring parameters real data. Without this phase, `CorrectGoal
 
 **Intent**: Replace a match's events in one tracked graph.
 
-**Contract**: `ReplaceEventsAsync(Guid matchId, IReadOnlyList<MatchEvent> events, …)` — clears the tracked `Events` collection and adds the new set, matching `FixtureIngestService.cs:172`'s `Clear()`-then-add pattern so orphan deletion behaves identically. Saving is the caller's call, consistent with the other repositories.
+**Contract**: `ReplaceEventsAsync(Guid matchId, IReadOnlyList<MatchEvent> events, …)` — clears the tracked `Events` collection and adds the new set, matching `FixtureIngestService.cs:172`'s `Clear()`-then-add pattern so orphan deletion behaves identically. Saving is the caller's call — a deliberate exception to the rule that an intent-named write owns its save, because ingest commits the events and the fixture together in one save-per-match. (Corrected 2026-08-25 during impl review: the original wording claimed this was 'consistent with the other repositories', which it is not.)
 
 #### 3. Events editor on the match form
 
@@ -419,10 +419,9 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Manual
 
-- [ ] 1.2 Each of the six parameters maps to one documented rule; no point value hardcoded
-- [ ] 1.3 `MissedPenalty` cannot be selected as the first scorer
-- [ ] 1.4 Goal ordering key excludes `MatchEvent.Id`, runs in memory, null `MinuteExtra` sorts as 0
-
+- [x] 1.2 Each of the six parameters maps to one documented rule; no point value hardcoded — manual, 2026-08-25
+- [x] 1.3 `MissedPenalty` cannot be selected as the first scorer — manual, 2026-08-25
+- [x] 1.4 Goal ordering key excludes `MatchEvent.Id`, runs in memory, null `MinuteExtra` sorts as 0 — manual, 2026-08-25
 ### Phase 2: Scoring service and triggers
 
 #### Automated
@@ -431,13 +430,12 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Manual
 
-- [ ] 2.2 Finishing a match writes non-null `AwardedPoints` matching each league's rules
-- [ ] 2.3 Two leagues with different rules on one tournament get different points for identical forecasts
-- [ ] 2.4 Editing the score re-scores automatically
-- [ ] 2.5 Reverting a match to Scheduled sets `AwardedPoints` back to null
-- [ ] 2.6 `POST /api/matches/{id}/rescore` works for admin, 403 for non-admin, 404 for unknown match
-- [ ] 2.7 A scoring exception cannot escape as a 500; it returns 200 with `ScoringFailed`
-
+- [x] 2.2 Finishing a match writes non-null `AwardedPoints` matching each league's rules — manual, 2026-08-25
+- [x] 2.3 Two leagues with different rules on one tournament get different points for identical forecasts — manual, 2026-08-25
+- [x] 2.4 Editing the score re-scores automatically — manual, 2026-08-25
+- [x] 2.5 Reverting a match to Scheduled sets `AwardedPoints` back to null — manual, 2026-08-25
+- [x] 2.6 `POST /api/matches/{id}/rescore` works for admin, 403 for non-admin, 404 for unknown match — manual, 2026-08-25
+- [x] 2.7 A scoring exception cannot escape as a 500; it returns 200 with `ScoringFailed` — manual, 2026-08-25
 ### Phase 3: Admin match-event entry
 
 #### Automated
@@ -448,14 +446,13 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Manual
 
-- [ ] 3.4 Events entered on a match survive a reload of the form
-- [ ] 3.5 Saving events immediately changes scorer/card points
-- [ ] 3.6 Correct player + correct credited team earns the scorer points; wrong team does not
-- [ ] 3.7 An own-goal pair is awarded correctly
-- [ ] 3.8 A `MissedPenalty` before the first goal does not become the first scorer
-- [ ] 3.9 An ineligible player is rejected with a specific message
-- [ ] 3.10 Re-saving an unchanged same-minute goal pair leaves scorer points unchanged
-
+- [x] 3.4 Events entered on a match survive a reload of the form — manual, 2026-08-25
+- [x] 3.5 Saving events immediately changes scorer/card points — manual, 2026-08-25
+- [x] 3.6 Correct player + correct credited team earns the scorer points; wrong team does not — manual, 2026-08-25
+- [x] 3.7 An own-goal pair is awarded correctly — manual, 2026-08-25
+- [x] 3.8 A `MissedPenalty` before the first goal does not become the first scorer — manual, 2026-08-25
+- [x] 3.9 An ineligible player is rejected with a specific message — manual, 2026-08-25
+- [x] 3.10 Re-saving an unchanged same-minute goal pair leaves scorer points unchanged — manual, 2026-08-25
 ### Phase 4: Standings and points read APIs
 
 #### Automated
@@ -464,12 +461,11 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Manual
 
-- [ ] 4.2 Standings list every current member, including one with no predictions (0 points)
-- [ ] 4.3 A non-member gets 404, not 403
-- [ ] 4.4 Equal totals share a rank and the next rank skips
-- [ ] 4.5 A member who leaves disappears from the table
-- [ ] 4.6 Round view and reveal carry `awardedPoints`, null before scoring
-
+- [x] 4.2 Standings list every current member, including one with no predictions (0 points) — manual, 2026-08-25
+- [x] 4.3 A non-member gets 404, not 403 — manual, 2026-08-25
+- [x] 4.4 Equal totals share a rank and the next rank skips — manual, 2026-08-25
+- [x] 4.5 A member who leaves disappears from the table — manual, 2026-08-25
+- [x] 4.6 Round view and reveal carry `awardedPoints`, null before scoring — manual, 2026-08-25
 ### Phase 5: Client — standings and results
 
 #### Automated
@@ -479,9 +475,9 @@ None. `Prediction.AwardedPoints` and the `MatchEvents` table already exist; this
 
 #### Manual
 
-- [ ] 5.3 Standings card on the league page highlights the caller's row and links to the full table
-- [ ] 5.4 An unscored league shows an empty state, not a broken table
-- [ ] 5.5 Standings update after the admin scores a match
-- [ ] 5.6 Finished matches in the round view show result and points; upcoming ones show neither
-- [ ] 5.7 The reveal shows each member's forecast with their points
-- [ ] 5.8 Two leagues on one tournament show different totals for the same member
+- [x] 5.3 Standings card on the league page highlights the caller's row and links to the full table — manual, 2026-08-25
+- [x] 5.4 An unscored league shows an empty state, not a broken table — manual, 2026-08-25
+- [x] 5.5 Standings update after the admin scores a match — manual, 2026-08-25
+- [x] 5.6 Finished matches in the round view show result and points; upcoming ones show neither — manual, 2026-08-25
+- [x] 5.7 The reveal shows each member's forecast with their points — manual, 2026-08-25
+- [x] 5.8 Two leagues on one tournament show different totals for the same member — manual, 2026-08-25

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { apiFetch } from "@/lib/api"
+import { ApiError, apiFetch } from "@/lib/api"
 import type { StandingsResponse } from "@/leagues/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,13 +21,19 @@ interface StandingsCardProps {
 export function StandingsCard({ leagueId }: StandingsCardProps) {
   const [standings, setStandings] = useState<StandingsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
     void (async () => {
       try {
         setStandings(await apiFetch<StandingsResponse>(`/api/leagues/${leagueId}/standings`))
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load the standings.")
+        // The API returns 404 both for a missing league and for one the caller may not see —
+        // same branch StandingsPage and LeagueDetailPage take. Unreachable while the parent page
+        // gates visibility before mounting this card, but the card must not claim a load failure
+        // if that ever stops being true.
+        if (err instanceof ApiError && err.status === 404) setNotFound(true)
+        else setError(err instanceof Error ? err.message : "Failed to load the standings.")
       }
     })()
   }, [leagueId])
@@ -41,7 +47,15 @@ export function StandingsCard({ leagueId }: StandingsCardProps) {
       <CardContent className="grid gap-3">
         {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
 
-        {!error && !standings && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {notFound && (
+          <p className="text-sm text-muted-foreground">
+            This league is not available, or you are not a member of it.
+          </p>
+        )}
+
+        {!error && !notFound && !standings && (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        )}
 
         {standings && rows.length === 0 && (
           <p className="text-sm text-muted-foreground">

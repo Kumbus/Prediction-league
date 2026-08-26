@@ -189,9 +189,10 @@ public sealed class FixtureIngestService : IFixtureIngestService
         Dictionary<int, Guid> playerCache,
         CancellationToken cancellationToken)
     {
-        match.Events.Clear(); // orphaned required dependents are deleted on SaveChanges
-
-        var added = 0;
+        // Mapping only. The Clear()-then-add and its change-tracking semantics belong to
+        // IMatchRepository.ReplaceEvents — a second hand-rolled copy here is exactly how the
+        // IsKeySet bug (lessons.md) survived its first fix in the other three call sites.
+        var mapped = new List<MatchEvent>(events.Count);
         foreach (var ev in events)
         {
             // Only Goal/Card are seeded as dictionary rows; Subst/Var have no MatchEventTypeId.
@@ -222,7 +223,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
             var teamId = await ResolveTeamAsync(ev.Team, teamCache, cancellationToken);
             var playerId = await ResolvePlayerAsync(ev.PlayerId.Value, ev.PlayerName, playerCache, cancellationToken);
 
-            match.Events.Add(new MatchEvent
+            mapped.Add(new MatchEvent
             {
                 Id = Guid.NewGuid(),
                 MatchId = match.Id,
@@ -232,10 +233,13 @@ public sealed class FixtureIngestService : IFixtureIngestService
                 Minute = ev.Minute ?? 0,
                 MinuteExtra = ev.MinuteExtra
             });
-            added++;
         }
 
-        return added;
+        // The entity overload, not the id one: for a fixture this run just AddAsync'd, a query by
+        // id would go to the database and miss the still-unsaved row.
+        _matches.ReplaceEvents(match, mapped);
+
+        return mapped.Count;
     }
 
     private async Task<Guid> ResolveTeamAsync(IngestTeamRef team, Dictionary<int, Guid> cache, CancellationToken cancellationToken)

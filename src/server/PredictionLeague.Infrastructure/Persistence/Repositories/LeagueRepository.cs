@@ -27,11 +27,17 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
             .OrderBy(l => l.Name)
             .ToListAsync(cancellationToken);
 
+    // AsSplitQuery on the three reads below: ScoringRules and Memberships are both collections, so
+    // one query multiplies rules × members per league and EF logs MultipleCollectionIncludeWarning.
+    // The OrderBy is what split queries need to stay deterministic under a row-limiting operator —
+    // moot here because both filters are on unique keys, but without it EF warns instead.
     public async Task<League?> GetWithDetailAsync(Guid leagueId, CancellationToken cancellationToken = default)
         => await Set
             .AsNoTracking()
             .Include(l => l.ScoringRules)
             .Include(l => l.Memberships)
+            .AsSplitQuery()
+            .OrderBy(l => l.Id)
             .FirstOrDefaultAsync(l => l.Id == leagueId, cancellationToken);
 
     public async Task<IReadOnlyList<League>> ListByTournamentWithRulesAsync(Guid tournamentId, CancellationToken cancellationToken = default)
@@ -47,6 +53,8 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
         => await Set
             .Include(l => l.ScoringRules)
             .Include(l => l.Memberships)
+            .AsSplitQuery()
+            .OrderBy(l => l.Id)
             .FirstOrDefaultAsync(l => l.Id == leagueId, cancellationToken);
 
     // Reconciles in place rather than delete-and-reinsert: (LeagueId, Parameter) is unique and EF
@@ -111,6 +119,8 @@ public class LeagueRepository : BaseRepository<League>, ILeagueRepository
         => await Set
             .Include(l => l.ScoringRules)
             .Include(l => l.Memberships)
+            .AsSplitQuery()
+            .OrderBy(l => l.Id)
             .FirstOrDefaultAsync(l => l.InviteCode == inviteCode, cancellationToken);
 
     public async Task JoinAsync(League league, Guid userId, CancellationToken cancellationToken = default)
