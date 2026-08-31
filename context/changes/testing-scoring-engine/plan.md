@@ -724,29 +724,29 @@ step in an existing job. Rollback is deleting the step and the project entry fro
 
 #### Automated
 
-- [x] 2.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [x] 2.2 All six `ScoringParameter` members appear in the test file
-- [x] 2.3 Solution still builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 2.1 Suite is green: `dotnet test src/server/prediction-league.slnx` — 79aa428
+- [x] 2.2 All six `ScoringParameter` members appear in the test file — 79aa428
+- [x] 2.3 Solution still builds: `dotnet build src/server/prediction-league.slnx` — 79aa428
 
 #### Manual
 
-- [x] 2.4 Every expected total traces to a stated rule configuration, not to the engine
-- [x] 2.5 Each theory covers a non-awarding case
-- [x] 2.6 No test asserts zero, negative, or duplicate point values
+- [x] 2.4 Every expected total traces to a stated rule configuration, not to the engine — 79aa428
+- [x] 2.5 Each theory covers a non-awarding case — 79aa428
+- [x] 2.6 No test asserts zero, negative, or duplicate point values — 79aa428
 
 ### Phase 3: `MatchOutcome` derivation (risk #1)
 
 #### Automated
 
-- [ ] 3.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [ ] 3.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [ ] 3.3 Id-independence mutation check: adding `.ThenBy(x => x.Event.Id)` turns the suite red, then reverted
+- [x] 3.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
+- [x] 3.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 3.3 Id-independence mutation check: adding `.ThenBy(x => x.Event.Id)` turns the suite red, then reverted
 
 #### Manual
 
-- [ ] 3.4 No test asserts which player wins a same-minute tie
-- [ ] 3.5 Event-type fixture ids and categories match the seed exactly
-- [ ] 3.6 `MissedPenalty` test would fail if the `Code` exclusion were removed
+- [x] 3.4 No test asserts which player wins a same-minute tie
+- [x] 3.5 Event-type fixture ids and categories match the seed exactly
+- [x] 3.6 `MissedPenalty` test would fail if the `Code` exclusion were removed
 
 ### Phase 4: `MatchScoringService` per-league isolation (risk #2)
 
