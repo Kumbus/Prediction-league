@@ -11,9 +11,15 @@ export function SignOutButton() {
   const onClick = async () => {
     if (pending) return
     setPending(true)
+    // Leave the guarded subtree BEFORE the session drops. This button renders inside
+    // RequireAuth, which navigates to /sign-in the moment auth status becomes "anonymous"
+    // (RequireAuth.tsx:20) — so signing out first lets that redirect win and "/" never
+    // renders. signOut swallows its own errors and always clears state
+    // (AuthContext.tsx:30-36), so navigating first cannot park an authenticated session on
+    // the landing page.
+    navigate("/", { replace: true })
     try {
       await signOut()
-      navigate("/", { replace: true })
     } finally {
       setPending(false)
     }
