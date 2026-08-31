@@ -53,6 +53,11 @@ jobs:
       - name: Restore
         run: dotnet restore src/server/prediction-league.slnx
 
+      # Red test blocks the deploy. This workflow only triggers on push to main, so
+      # PRs stay ungated until the broader gate wiring lands.
+      - name: Run tests
+        run: dotnet test src/server/prediction-league.slnx --no-restore
+
       - name: Publish API
         run: dotnet publish ${{ env.API_PROJECT }} -c Release -o api-publish --no-restore
 
