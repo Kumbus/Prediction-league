@@ -766,13 +766,13 @@ step in an existing job. Rollback is deleting the step and the project entry fro
 
 #### Automated
 
-- [x] 5.1 No `TBD` remains in `test-plan.md` §6.1
-- [x] 5.2 §3 Phase 1 Status reads `complete`
-- [x] 5.3 §4 `unit (server)` row no longer reads `none yet`
-- [x] 5.4 Full suite still green: `dotnet test src/server/prediction-league.slnx`
+- [x] 5.1 No `TBD` remains in `test-plan.md` §6.1 — eecdeee
+- [x] 5.2 §3 Phase 1 Status reads `complete` — eecdeee
+- [x] 5.3 §4 `unit (server)` row no longer reads `none yet` — eecdeee
+- [x] 5.4 Full suite still green: `dotnet test src/server/prediction-league.slnx` — eecdeee
 
 #### Manual
 
-- [x] 5.5 §6.1 is specific enough to write a new scoring test from
-- [x] 5.6 The oracle constraint is stated in §6.1, not implied
-- [x] 5.7 The PR-gating gap is recorded in §5
+- [x] 5.5 §6.1 is specific enough to write a new scoring test from — eecdeee
+- [x] 5.6 The oracle constraint is stated in §6.1, not implied — eecdeee
+- [x] 5.7 The PR-gating gap is recorded in §5 — eecdeee
