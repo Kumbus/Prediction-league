@@ -25,7 +25,10 @@ Client (`cd src/client`):
 - Build: `npm run build` (runs `tsc -b` then `vite build` — type errors fail the build)
 - Lint: `npm run lint`
 
-No test suite exists yet in either unit. Don't claim tests pass — there are none to run.
+Server tests: `dotnet test src/server/prediction-league.slnx` from the **repo root** (a root
+`global.json` selects the Microsoft.Testing.Platform runner; run it from elsewhere and the
+runner is not found). Suite lives in `src/server/PredictionLeague.Tests`. The client has no
+test suite yet — don't claim client tests pass.
 
 ## State of the code (pre-persistence)
 
@@ -39,7 +42,7 @@ This is early scaffolding. Two traps:
 The scoring system is the core domain concept and is configurable per league:
 
 - A `League` is tied to one `TournamentId`, owned by an `OrganizerUserId`, joined via `InviteCode`.
-- `ScoringRule` rows define a league's custom scoring: each maps a `ScoringParameter` (`ExactScore`, `CorrectOutcome`, `CorrectGoalScorer`, `CorrectCardCount`) to `Points`. Scoring is data-driven per league — don't hardcode point values.
+- `ScoringRule` rows define a league's custom scoring: each maps a `ScoringParameter` (`ExactScore`, `CorrectOutcome`, `CorrectGoalScorer`, `CorrectCardCount`, `CorrectYellowCards`, `CorrectRedCards`) to `Points`. Scoring is data-driven per league — don't hardcode point values.
 - Model files carry `// FR-00x` comments linking back to PRD requirements; keep them when editing.
 
 ## Conventions

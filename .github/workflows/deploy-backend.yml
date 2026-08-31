@@ -55,8 +55,11 @@ jobs:
 
       # Red test blocks the deploy. This workflow only triggers on push to main, so
       # PRs stay ungated until the broader gate wiring lands.
+      #
+      # -c Release deliberately: it is the configuration that ships, and the publish
+      # steps below reuse these intermediate outputs instead of rebuilding the tree.
       - name: Run tests
-        run: dotnet test src/server/prediction-league.slnx --no-restore
+        run: dotnet test src/server/prediction-league.slnx -c Release --no-restore
 
       - name: Publish API
         run: dotnet publish ${{ env.API_PROJECT }} -c Release -o api-publish --no-restore

@@ -175,8 +175,6 @@ public class MatchOutcomeTests
     [MemberData(nameof(IdIndependenceMatches))]
     public void FromMatch_FirstScorer_DoesNotDependOnEventIds(string scenario, MatchEvent[] events)
     {
-        scenario.ShouldNotBeEmpty();
-
         var baseline = MatchOutcome.FromMatch(FinishedMatch(2, 1, events), SeededEventTypes());
 
         for (var attempt = 0; attempt < 40; attempt++)
