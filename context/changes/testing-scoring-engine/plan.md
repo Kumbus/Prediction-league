@@ -710,29 +710,29 @@ step in an existing job. Rollback is deleting the step and the project entry fro
 
 #### Automated
 
-- [x] 1.1 Solution restores: `dotnet restore src/server/prediction-league.slnx`
-- [x] 1.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 1.3 Test suite runs and is green: `dotnet test src/server/prediction-league.slnx`
-- [x] 1.4 Test discovery finds the smoke test (1 passed, not 0 total)
+- [x] 1.1 Solution restores: `dotnet restore src/server/prediction-league.slnx` — 7e9ed33
+- [x] 1.2 Solution builds: `dotnet build src/server/prediction-league.slnx` — 7e9ed33
+- [x] 1.3 Test suite runs and is green: `dotnet test src/server/prediction-league.slnx` — 7e9ed33
+- [x] 1.4 Test discovery finds the smoke test (1 passed, not 0 total) — 7e9ed33
 
 #### Manual
 
-- [x] 1.5 Resolved package versions match Key Discoveries; major differences flagged
-- [x] 1.6 CI step positioned after Restore, before Publish API; migrate job dependency unchanged
+- [x] 1.5 Resolved package versions match Key Discoveries; major differences flagged — 7e9ed33
+- [x] 1.6 CI step positioned after Restore, before Publish API; migrate job dependency unchanged — 7e9ed33
 
 ### Phase 2: `PredictionScorer` truth table (risk #1)
 
 #### Automated
 
-- [ ] 2.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [ ] 2.2 All six `ScoringParameter` members appear in the test file
-- [ ] 2.3 Solution still builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 2.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
+- [x] 2.2 All six `ScoringParameter` members appear in the test file
+- [x] 2.3 Solution still builds: `dotnet build src/server/prediction-league.slnx`
 
 #### Manual
 
-- [ ] 2.4 Every expected total traces to a stated rule configuration, not to the engine
-- [ ] 2.5 Each theory covers a non-awarding case
-- [ ] 2.6 No test asserts zero, negative, or duplicate point values
+- [x] 2.4 Every expected total traces to a stated rule configuration, not to the engine
+- [x] 2.5 Each theory covers a non-awarding case
+- [x] 2.6 No test asserts zero, negative, or duplicate point values
 
 ### Phase 3: `MatchOutcome` derivation (risk #1)
 
