@@ -21,11 +21,40 @@ public interface IPredictionRepository : IRepository<Prediction>
     //
     // Scoped by league, deliberately *not* by current membership: a forecast belongs to the moment
     // it was made, so someone who later leaves the league still appears in the reveal for matches
-    // they predicted. S-07 standings depend on the same rule — a leaver's earned points do not
-    // vanish from the table they were earned in.
+    // they predicted. Standings take the opposite stance — ListStandingsAsync below is driven by
+    // the roster, so a leaver drops out of the table even though their forecasts survive here.
     Task<IReadOnlyList<MemberPredictionDto>> ListForMatchesAsync(
         Guid leagueId,
         IReadOnlyCollection<Guid> matchIds,
+        CancellationToken cancellationToken = default);
+
+    // A league's table (FR-012): every *current* member with their total points, how many matches
+    // they have been scored on, and how many forecasts they have made. Driven by LeagueMembership
+    // left-joined to predictions, so a member who never predicted appears with zero and a member
+    // who left does not appear at all. Ordered points descending, then display name.
+    Task<IReadOnlyList<StandingRowDto>> ListStandingsAsync(
+        Guid leagueId,
+        CancellationToken cancellationToken = default);
+
+    // Every forecast on one match, across *all* leagues — the scoring input. Untracked, matching
+    // ListForUserAsync's stance: the read feeds a computation and the write half below re-reads.
+    Task<IReadOnlyList<Prediction>> ListForMatchAsync(
+        Guid matchId,
+        CancellationToken cancellationToken = default);
+
+    // The write half of scoring, and the reason the read above stays untracked. Every other write
+    // in this layer is an intent-named repository method that owns its save (UpsertManyAsync,
+    // ReplaceScoringRulesAsync, JoinAsync, TransferOrganizerAsync); handing a tracked graph out to
+    // a service that mutates it and calls the generic SaveChangesAsync would break that convention
+    // and make "one save per match" unenforceable — anything else tracked in the same scoped
+    // context would flush with it.
+    //
+    // A null value un-scores that prediction (the match is no longer Finished, or lost its score);
+    // 0 means "scored, earned nothing". One SaveChangesAsync inside the method covers the whole
+    // match, so a match is never half-scored.
+    Task SetAwardedPointsAsync(
+        Guid matchId,
+        IReadOnlyDictionary<Guid, int?> pointsByPredictionId,
         CancellationToken cancellationToken = default);
 
     // Insert-or-update the batch in one SaveChangesAsync, so a round saves as a unit. Idempotent

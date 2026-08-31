@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PredictionLeague.Api.Scoring;
 using PredictionLeague.Application.Abstractions;
 using PredictionLeague.Application.Abstractions.Matches;
 using PredictionLeague.Application.Abstractions.Persistence;
+using PredictionLeague.Application.Abstractions.Scoring;
 using PredictionLeague.Domain.Entities;
 using PredictionLeague.Infrastructure.Identity;
 
@@ -23,19 +25,25 @@ public class TournamentsController : ControllerBase
     private readonly IMatchRepository _matches;
     private readonly ITeamRepository _teams;
     private readonly IMatchCsvImporter _matchImporter;
+    private readonly IMatchScoringService _scoring;
+    private readonly ILogger<TournamentsController> _logger;
 
     public TournamentsController(
         ITournamentRepository tournaments,
         ILeagueRepository leagues,
         IMatchRepository matches,
         ITeamRepository teams,
-        IMatchCsvImporter matchImporter)
+        IMatchCsvImporter matchImporter,
+        IMatchScoringService scoring,
+        ILogger<TournamentsController> logger)
     {
         _tournaments = tournaments;
         _leagues = leagues;
         _matches = matches;
         _teams = teams;
         _matchImporter = matchImporter;
+        _scoring = scoring;
+        _logger = logger;
     }
 
     public record TournamentResponse(
@@ -182,6 +190,9 @@ public class TournamentsController : ControllerBase
 
     // ---- Manual match entry (interim data source while paid ingest is deferred) ----------------
 
+    // ScoringFailed / ScoringMessage carry the partial-success verdict on the two write endpoints
+    // (see Api/Scoring/ScoringTrigger.cs). They default to "fine" so the read endpoint, which never
+    // scores, keeps its shape.
     public record MatchDetailResponse(
         Guid Id,
         Guid TournamentId,
@@ -191,7 +202,9 @@ public class TournamentsController : ControllerBase
         MatchStatus Status,
         int? HomeScore,
         int? AwayScore,
-        string Round);
+        string Round,
+        bool ScoringFailed = false,
+        string? ScoringMessage = null);
 
     public record CreateMatchRequest(
         Guid HomeTeamId,
@@ -242,7 +255,11 @@ public class TournamentsController : ControllerBase
         await _matches.AddAsync(match, cancellationToken);
         await _matches.SaveChangesAsync(cancellationToken);
 
-        return CreatedAtAction(nameof(GetMatch), new { matchId = match.Id }, ToMatchResponse(match));
+        // A match created straight into Finished can already have predictions in a league whose
+        // tournament this is — score after the save, never before.
+        var scoringMessage = await ScoringTrigger.TryScoreAsync(_scoring, _logger, match.Id, cancellationToken);
+
+        return CreatedAtAction(nameof(GetMatch), new { matchId = match.Id }, ToMatchResponse(match, scoringMessage));
     }
 
     // GET api/matches/{matchId} — single match for the edit form (admin only).
@@ -277,7 +294,11 @@ public class TournamentsController : ControllerBase
         _matches.Update(match);
         await _matches.SaveChangesAsync(cancellationToken);
 
-        return Ok(ToMatchResponse(match));
+        // The result may just have changed — score after the save so the recomputation sees the
+        // edit, not the row it replaced.
+        var scoringMessage = await ScoringTrigger.TryScoreAsync(_scoring, _logger, match.Id, cancellationToken);
+
+        return Ok(ToMatchResponse(match, scoringMessage));
     }
 
     // DELETE api/matches/{matchId} — remove a match; EF cascades its events.
@@ -354,9 +375,9 @@ public class TournamentsController : ControllerBase
         return null;
     }
 
-    private static MatchDetailResponse ToMatchResponse(Match m)
+    private static MatchDetailResponse ToMatchResponse(Match m, string? scoringMessage = null)
         => new(m.Id, m.TournamentId, m.HomeTeamId, m.AwayTeamId, m.KickoffUtc, m.Status,
-            m.HomeScore, m.AwayScore, m.Round);
+            m.HomeScore, m.AwayScore, m.Round, scoringMessage is not null, scoringMessage);
 
     private bool IsAdmin() => User.HasClaim(AuthorizationPolicies.AdminClaimType, "true");
 

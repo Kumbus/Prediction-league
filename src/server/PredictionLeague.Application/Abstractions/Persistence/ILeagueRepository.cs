@@ -18,6 +18,11 @@ public interface ILeagueRepository : IRepository<League>
     // whether the requester may see it.
     Task<League?> GetWithDetailAsync(Guid leagueId, CancellationToken cancellationToken = default);
 
+    // Every league bound to the tournament, with its ScoringRules. Backs scoring: one match's
+    // result is scored once per league on its tournament, each against that league's own rules.
+    // Untracked — the scoring path reads rules as values and never writes through this graph.
+    Task<IReadOnlyList<League>> ListByTournamentWithRulesAsync(Guid tournamentId, CancellationToken cancellationToken = default);
+
     // Write-side counterpart of GetWithDetailAsync: the same graph, but *tracked*, so the rule-set
     // replace can mutate it. GetWithDetailAsync is AsNoTracking and must not back a write.
     Task<League?> GetForUpdateAsync(Guid leagueId, CancellationToken cancellationToken = default);

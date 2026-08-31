@@ -215,6 +215,11 @@ export function MatchPredictionRow({
               {row.prediction.yellowCards !== null && ` · ${row.prediction.yellowCards} yellow`}
               {row.prediction.redCards !== null && ` · ${row.prediction.redCards} red`}
               {row.prediction.totalCards !== null && ` · ${row.prediction.totalCards} cards`}
+              {/* Only when scored: a finished match whose points have not been computed must read
+                  as "not scored yet", which is silence — never a 0 that looks like a verdict. */}
+              {row.prediction.awardedPoints !== null && (
+                <span className="font-medium"> · {row.prediction.awardedPoints} pts</span>
+              )}
             </p>
           ) : (
             <p className="text-muted-foreground">You did not forecast this match.</p>
@@ -250,6 +255,11 @@ export function MatchPredictionRow({
               )}
               {p.redCards !== null && (
                 <span className="text-muted-foreground">{p.redCards} red</span>
+              )}
+              {/* Once the match is scored the reveal doubles as its scoreboard. Absent until
+                  then, so nobody reads an unscored match as everyone earning nothing. */}
+              {p.awardedPoints !== null && (
+                <span className="ml-auto font-medium tabular-nums">{p.awardedPoints} pts</span>
               )}
             </div>
           ))}

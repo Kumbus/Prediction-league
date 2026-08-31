@@ -104,6 +104,9 @@ export interface OwnPrediction {
   yellowCards: number | null
   redCards: number | null
   submittedUtc: string
+  // What this forecast earned (S-07); null until the match is scored. Render it only when
+  // non-null — an unscored finished match must read as "not scored yet", never as zero.
+  awardedPoints: number | null
 }
 
 export interface MatchPredictionRow {
@@ -174,9 +177,36 @@ export interface RevealedPrediction {
   totalCards: number | null
   yellowCards: number | null
   redCards: number | null
+  // Same contract as OwnPrediction.awardedPoints — the reveal doubles as the per-match scoreboard
+  // once the match is scored.
+  awardedPoints: number | null
 }
 
 export interface RevealedRoundResponse {
   round: string | null
   predictions: RevealedPrediction[]
+}
+
+// ---- Standings (S-07) -------------------------------------------------------------------
+// Mirrors StandingsController's response records.
+
+// Rank is assigned server-side and shared on ties (1, 2, 2, 4), so every surface agrees.
+// scoredMatches counts matches this member has actually been scored on; predictionsMade counts
+// their forecasts, scored or not — the two differ while results are still coming in.
+export interface StandingRow {
+  rank: number
+  userId: string
+  displayName: string
+  points: number
+  scoredMatches: number
+  predictionsMade: number
+}
+
+export interface StandingsResponse {
+  leagueId: string
+  leagueName: string
+  // The caller, so their own row can be marked. It can legitimately match no row: visibility is
+  // organizer-or-membership while the table is the membership roster.
+  callerUserId: string
+  rows: StandingRow[]
 }

@@ -17,4 +17,7 @@ public record MemberPredictionDto(
     int? TotalCards,
     int? YellowCards,
     int? RedCards,
-    DateTimeOffset SubmittedUtc);
+    DateTimeOffset SubmittedUtc,
+    // What this forecast earned (FR-011); null until the match is scored. The reveal renders it
+    // only when non-null, so an unscored finished match reads as "not scored yet", never as zero.
+    int? AwardedPoints);

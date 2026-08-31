@@ -17,6 +17,53 @@ public class MatchRepository : BaseRepository<Match>, IMatchRepository
             .Include(m => m.Events)
             .FirstOrDefaultAsync(m => m.ExternalFixtureId == externalFixtureId, cancellationToken);
 
+    public async Task<Match?> GetWithEventsAsync(Guid matchId, CancellationToken cancellationToken = default)
+        => await Set
+            .Include(m => m.Events)
+            .FirstOrDefaultAsync(m => m.Id == matchId, cancellationToken);
+
+    // Ordered by (Minute, MinuteExtra) for reading. This is presentation order only — the scoring
+    // engine re-derives its own first-scorer order in memory from a fuller key (MatchOutcome).
+    public async Task<IReadOnlyList<MatchEventEditDto>> ListEventsForEditAsync(Guid matchId, CancellationToken cancellationToken = default)
+    {
+        var query =
+            from e in Context.MatchEvents.AsNoTracking().Where(e => e.MatchId == matchId)
+            join p in Context.Players.AsNoTracking() on e.PlayerId equals p.Id
+            join t in Context.Teams.AsNoTracking() on e.TeamId equals t.Id
+            join et in Context.MatchEventTypes.AsNoTracking() on e.MatchEventTypeId equals et.Id
+            orderby e.Minute, e.MinuteExtra
+            select new MatchEventEditDto(
+                e.Id, et.Id, et.Code, et.DisplayName, p.Id, p.Name, t.Id, t.Name, e.Minute, e.MinuteExtra);
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task ReplaceEventsAsync(Guid matchId, IReadOnlyList<MatchEvent> events, CancellationToken cancellationToken = default)
+    {
+        var match = await Set
+            .Include(m => m.Events)
+            .FirstOrDefaultAsync(m => m.Id == matchId, cancellationToken)
+            ?? throw new InvalidOperationException($"Match '{matchId}' not found.");
+
+        ReplaceEvents(match, events);
+    }
+
+    public void ReplaceEvents(Match match, IReadOnlyList<MatchEvent> events)
+    {
+        match.Events.Clear(); // orphaned required dependents are deleted on SaveChanges
+
+        foreach (var e in events)
+        {
+            e.MatchId = match.Id;
+            match.Events.Add(e);
+
+            // Explicit Add: callers build events with an Id already set, and against a tracked
+            // Unchanged match EF's IsKeySet heuristic reads a key-set child as an existing row and
+            // marks it Modified — an UPDATE on a row that was never inserted.
+            Context.Set<MatchEvent>().Add(e);
+        }
+    }
+
     public async Task<IReadOnlyList<MatchWithEventsDto>> ListByTournamentAsync(Guid tournamentId, CancellationToken cancellationToken = default)
     {
         var query =

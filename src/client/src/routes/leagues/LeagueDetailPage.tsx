@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from "@/lib/api"
 import type { LeagueDetailResponse } from "@/leagues/types"
 import { MembersCard } from "@/components/leagues/MembersCard"
 import { ScoringCard } from "@/components/leagues/ScoringCard"
+import { StandingsCard } from "@/components/leagues/StandingsCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -95,6 +96,10 @@ export function LeagueDetailPage() {
       {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {/* Standings lead: the table is what the league is for, so it sits ahead of the invite,
+            scoring and roster cards. */}
+        <StandingsCard leagueId={league.id} />
+
         <Card>
           <CardHeader><CardTitle>Invite code</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
