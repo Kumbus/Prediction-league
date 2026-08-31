@@ -50,3 +50,7 @@ dist/
 .claude/skills/10x-frame/SKILL.md
 .claude/commands/exa-setup.md
 .vscode/
+.claude/prompts/m3l2-ad-hoc-testing.md
+.claude/skills/10x-tdd/SKILL.md
+.claude/skills/10x-test-plan/SKILL.md
+.claude/skills/10x-test-plan/references/test-plan-schema.md
