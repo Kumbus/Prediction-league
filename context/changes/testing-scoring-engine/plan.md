@@ -752,27 +752,27 @@ step in an existing job. Rollback is deleting the step and the project entry fro
 
 #### Automated
 
-- [x] 4.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [x] 4.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 4.3 Line 89 mutation check: fixing rule selection to one league turns the suite red, then reverted
+- [x] 4.1 Suite is green: `dotnet test src/server/prediction-league.slnx` — 9bc7c85
+- [x] 4.2 Solution builds: `dotnet build src/server/prediction-league.slnx` — 9bc7c85
+- [x] 4.3 Line 89 mutation check: fixing rule selection to one league turns the suite red, then reverted — 9bc7c85
 
 #### Manual
 
-- [x] 4.4 Two-league test asserts each league's specific total, not merely that they differ
-- [x] 4.5 Zero-rule case asserts integer `0`, distinct from `null`
-- [x] 4.6 Substitutes stub only the methods the service calls
+- [x] 4.4 Two-league test asserts each league's specific total, not merely that they differ — 9bc7c85
+- [x] 4.5 Zero-rule case asserts integer `0`, distinct from `null` — 9bc7c85
+- [x] 4.6 Substitutes stub only the methods the service calls — 9bc7c85
 
 ### Phase 5: Cookbook and rollout sync
 
 #### Automated
 
-- [ ] 5.1 No `TBD` remains in `test-plan.md` §6.1
-- [ ] 5.2 §3 Phase 1 Status reads `complete`
-- [ ] 5.3 §4 `unit (server)` row no longer reads `none yet`
-- [ ] 5.4 Full suite still green: `dotnet test src/server/prediction-league.slnx`
+- [x] 5.1 No `TBD` remains in `test-plan.md` §6.1
+- [x] 5.2 §3 Phase 1 Status reads `complete`
+- [x] 5.3 §4 `unit (server)` row no longer reads `none yet`
+- [x] 5.4 Full suite still green: `dotnet test src/server/prediction-league.slnx`
 
 #### Manual
 
-- [ ] 5.5 §6.1 is specific enough to write a new scoring test from
-- [ ] 5.6 The oracle constraint is stated in §6.1, not implied
-- [ ] 5.7 The PR-gating gap is recorded in §5
+- [x] 5.5 §6.1 is specific enough to write a new scoring test from
+- [x] 5.6 The oracle constraint is stated in §6.1, not implied
+- [x] 5.7 The PR-gating gap is recorded in §5
