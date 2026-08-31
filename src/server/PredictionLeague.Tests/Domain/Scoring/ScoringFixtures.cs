@@ -67,6 +67,15 @@ internal static class ScoringFixtures
 
     // A played-out match. Scores are nullable so the "unfinished match" guard can be exercised.
     public static Match FinishedMatch(int? homeScore, int? awayScore, params MatchEvent[] events)
+        => MatchInStatus(MatchStatus.Finished, homeScore, awayScore, events);
+
+    // The same match in any lifecycle state — a result that was reverted is not a finished result,
+    // and the scoring service treats it differently.
+    public static Match MatchInStatus(
+        MatchStatus status,
+        int? homeScore,
+        int? awayScore,
+        params MatchEvent[] events)
         => new()
         {
             Id = Guid.NewGuid(),
@@ -76,7 +85,7 @@ internal static class ScoringFixtures
             HomeTeamId = TeamA,
             AwayTeamId = TeamB,
             KickoffUtc = new DateTimeOffset(2026, 8, 15, 18, 0, 0, TimeSpan.Zero),
-            Status = MatchStatus.Finished,
+            Status = status,
             HomeScore = homeScore,
             AwayScore = awayScore,
             Events = events.ToList()
@@ -99,6 +108,34 @@ internal static class ScoringFixtures
             .ToList();
     }
 
+    // One league and the rules its organizer configured. Rules are minted against this league's
+    // own id, so a test can never accidentally score a prediction against a neighbour's config.
+    public static League LeagueWith(
+        Guid tournamentId,
+        string name,
+        params (ScoringParameter Parameter, int Points)[] configured)
+    {
+        var leagueId = Guid.NewGuid();
+
+        return new League
+        {
+            Id = leagueId,
+            Name = name,
+            TournamentId = tournamentId,
+            OrganizerUserId = Guid.NewGuid(),
+            InviteCode = name.Replace(" ", string.Empty).ToUpperInvariant(),
+            ScoringRules = configured
+                .Select(c => new ScoringRule
+                {
+                    Id = Guid.NewGuid(),
+                    LeagueId = leagueId,
+                    Parameter = c.Parameter,
+                    Points = c.Points
+                })
+                .ToList()
+        };
+    }
+
     // A member's forecast. Every optional half defaults to null — a blank forecast — so each test
     // states only the fields it is about.
     public static Prediction Forecast(
@@ -108,13 +145,15 @@ internal static class ScoringFixtures
         Guid? firstScorerTeamId = null,
         int? totalCards = null,
         int? yellowCards = null,
-        int? redCards = null)
+        int? redCards = null,
+        Guid? leagueId = null,
+        Guid? matchId = null)
         => new()
         {
             Id = Guid.NewGuid(),
-            LeagueId = Guid.NewGuid(),
+            LeagueId = leagueId ?? Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            MatchId = Guid.NewGuid(),
+            MatchId = matchId ?? Guid.NewGuid(),
             PredictedHomeScore = homeScore,
             PredictedAwayScore = awayScore,
             PredictedFirstScorerPlayerId = firstScorerPlayerId,

@@ -738,29 +738,29 @@ step in an existing job. Rollback is deleting the step and the project entry fro
 
 #### Automated
 
-- [x] 3.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [x] 3.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [x] 3.3 Id-independence mutation check: adding `.ThenBy(x => x.Event.Id)` turns the suite red, then reverted
+- [x] 3.1 Suite is green: `dotnet test src/server/prediction-league.slnx` — 5be4330
+- [x] 3.2 Solution builds: `dotnet build src/server/prediction-league.slnx` — 5be4330
+- [x] 3.3 Id-independence mutation check: adding `.ThenBy(x => x.Event.Id)` turns the suite red, then reverted — 5be4330
 
 #### Manual
 
-- [x] 3.4 No test asserts which player wins a same-minute tie
-- [x] 3.5 Event-type fixture ids and categories match the seed exactly
-- [x] 3.6 `MissedPenalty` test would fail if the `Code` exclusion were removed
+- [x] 3.4 No test asserts which player wins a same-minute tie — 5be4330
+- [x] 3.5 Event-type fixture ids and categories match the seed exactly — 5be4330
+- [x] 3.6 `MissedPenalty` test would fail if the `Code` exclusion were removed — 5be4330
 
 ### Phase 4: `MatchScoringService` per-league isolation (risk #2)
 
 #### Automated
 
-- [ ] 4.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
-- [ ] 4.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
-- [ ] 4.3 Line 89 mutation check: fixing rule selection to one league turns the suite red, then reverted
+- [x] 4.1 Suite is green: `dotnet test src/server/prediction-league.slnx`
+- [x] 4.2 Solution builds: `dotnet build src/server/prediction-league.slnx`
+- [x] 4.3 Line 89 mutation check: fixing rule selection to one league turns the suite red, then reverted
 
 #### Manual
 
-- [ ] 4.4 Two-league test asserts each league's specific total, not merely that they differ
-- [ ] 4.5 Zero-rule case asserts integer `0`, distinct from `null`
-- [ ] 4.6 Substitutes stub only the methods the service calls
+- [x] 4.4 Two-league test asserts each league's specific total, not merely that they differ
+- [x] 4.5 Zero-rule case asserts integer `0`, distinct from `null`
+- [x] 4.6 Substitutes stub only the methods the service calls
 
 ### Phase 5: Cookbook and rollout sync
 
