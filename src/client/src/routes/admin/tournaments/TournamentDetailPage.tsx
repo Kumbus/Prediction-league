@@ -140,10 +140,34 @@ export function TournamentDetailPage() {
             )}
           </div>
           {ingestResult && (
-            <div className="text-sm">
-              Fixtures: <b>{ingestResult.fixturesUpserted}</b> ·
-              Events replaced: <b>{ingestResult.eventsReplaced}</b> ·
-              Players created: <b>{ingestResult.playersCreated}</b>
+            <div className="space-y-1 text-sm">
+              <div>
+                Fixtures: <b>{ingestResult.fixturesUpserted}</b> ·
+                Events: <b>{ingestResult.eventsUpserted}</b> ·
+                API calls: <b>{ingestResult.apiCallsUsed}</b> ·
+                Quota left: <b>{ingestResult.quotaRemaining ?? "—"}</b>
+              </div>
+              {/* The counts alone read as a clean success. A match that ingested but did not
+                  score holds a saved result with stale points, and only a rescore repairs it —
+                  so the verdict is rendered next to the counts, not left in a server log. */}
+              {ingestResult.unscoredMatchIds.length > 0 && (
+                <div role="alert" className="text-destructive">
+                  {ingestResult.unscoredMatchIds.length} match(es) ingested but not scored — their
+                  points are stale until each is rescored:{" "}
+                  {ingestResult.unscoredMatchIds.join(", ")}
+                </div>
+              )}
+              {/* A dropped goal or card is a scoring input the API sent and the mapper could not
+                  keep. Nothing failed, so only this line separates "no events" from "events we
+                  lost" — add them in the match editor, then rescore. */}
+              {ingestResult.droppedEvents > 0 && (
+                <div role="alert" className="text-destructive">
+                  {ingestResult.droppedEvents} goal/card event(s) dropped across{" "}
+                  {ingestResult.matchesWithDroppedEvents.length} match(es) — their points were
+                  computed without them:{" "}
+                  {ingestResult.matchesWithDroppedEvents.join(", ")}
+                </div>
+              )}
             </div>
           )}
           {error && <div role="alert" className="text-sm text-destructive">{error}</div>}

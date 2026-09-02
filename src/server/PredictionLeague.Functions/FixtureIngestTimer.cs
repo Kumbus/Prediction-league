@@ -1,4 +1,4 @@
-using Microsoft.Azure.Functions.Worker;
+﻿using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Application.Abstractions.Persistence;
@@ -42,6 +42,27 @@ public class FixtureIngestTimer
                 _logger.LogInformation(
                     "Ingested tournament {TournamentId}: {Fixtures} fixtures, {Events} events, quota remaining {Quota}.",
                     tournament.Id, result.FixturesUpserted, result.EventsUpserted, result.QuotaRemaining);
+
+                // The run's partial-success verdict. Unattended, this log line is the only place it
+                // can surface, so it must not hide inside the Information line that says the ingest
+                // worked: those matches hold a saved result with stale points until someone
+                // rescores them.
+                if (result.UnscoredMatchIds.Count > 0)
+                {
+                    _logger.LogWarning(
+                        "Tournament {TournamentId}: {Count} match(es) ingested but not scored — rescore each with POST /api/matches/{{id}}/rescore: {MatchIds}.",
+                        tournament.Id, result.UnscoredMatchIds.Count, string.Join(", ", result.UnscoredMatchIds));
+                }
+
+                // Same reasoning for the events the mapper could not persist: those matches scored
+                // against an incomplete set, so their points can be wrong without anything failing.
+                if (result.DroppedEvents > 0)
+                {
+                    _logger.LogWarning(
+                        "Tournament {TournamentId}: {Count} goal/card event(s) dropped across {Matches} match(es) — those points were computed without them: {MatchIds}.",
+                        tournament.Id, result.DroppedEvents, result.MatchesWithDroppedEvents.Count,
+                        string.Join(", ", result.MatchesWithDroppedEvents));
+                }
             }
             catch (Exception ex)
             {

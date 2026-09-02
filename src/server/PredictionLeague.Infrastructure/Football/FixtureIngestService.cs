@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using PredictionLeague.Application.Abstractions.Football;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Scoring;
@@ -77,6 +77,15 @@ public sealed class FixtureIngestService : IFixtureIngestService
         var fixturesUpserted = 0;
         var eventsUpserted = 0;
 
+        // Matches whose result committed but whose points did not follow. Returned to the caller,
+        // not just logged — see IngestResult.UnscoredMatchIds.
+        var unscoredMatchIds = new List<Guid>();
+
+        // Goal/card events the mapper could not persist, and the matches missing them. Same
+        // reason: a count of what landed cannot express what did not.
+        var droppedEvents = 0;
+        var matchesWithDroppedEvents = new List<Guid>();
+
         foreach (var fixture in fixturesResponse.Fixtures)
         {
             if (fixture.FixtureId == 0 || fixture.Home is null || fixture.Away is null)
@@ -145,8 +154,15 @@ public sealed class FixtureIngestService : IFixtureIngestService
                     quotaRemaining = eventsResponse.RateLimit.DailyRemaining ?? quotaRemaining;
                     minuteRemaining = eventsResponse.RateLimit.MinuteRemaining ?? minuteRemaining;
 
-                    eventsUpserted += await ReplaceEventsAsync(
+                    var (upserted, dropped) = await ReplaceEventsAsync(
                         match, eventsResponse.Events, eventTypeIdByCode, teamCache, playerCache, cancellationToken);
+
+                    eventsUpserted += upserted;
+                    if (dropped > 0)
+                    {
+                        droppedEvents += dropped;
+                        matchesWithDroppedEvents.Add(match.Id);
+                    }
                 }
             }
 
@@ -157,9 +173,13 @@ public sealed class FixtureIngestService : IFixtureIngestService
 
             // Score after the save, never before, or it scores the pre-ingest result. The timer
             // path must produce points the same way the admin path does, through the same service.
-            // A scoring failure on one fixture is logged and does not abort the run: a partial
-            // ingest already leaves each processed match consistent, and the rescore endpoint
-            // recovers the rest.
+            // A scoring failure on one fixture does not abort the run: a partial ingest already
+            // leaves each processed match consistent, and the rescore endpoint recovers the rest.
+            //
+            // But it is collected into the result rather than only logged. The run's counts say the
+            // fixture was ingested, and on their own they would read as a clean success while the
+            // match carries stale points — the failure would live in a log line and nowhere the
+            // endpoint, the admin page or the timer could report it.
             try
             {
                 await _scoring.ScoreMatchAsync(match.Id, cancellationToken);
@@ -169,19 +189,28 @@ public sealed class FixtureIngestService : IFixtureIngestService
                 _logger.LogError(ex,
                     "Scoring failed for fixture {FixtureId} (match {MatchId}); the result is saved but its points are stale.",
                     fixture.FixtureId, match.Id);
+
+                unscoredMatchIds.Add(match.Id);
             }
         }
 
         _logger.LogInformation(
-            "Ingest tournament {TournamentId} ({Date}): {Fixtures} fixtures, {Events} events, {Calls} API calls, quota remaining {Quota}.",
-            tournamentId, onDate, fixturesUpserted, eventsUpserted, apiCallsUsed, quotaRemaining);
+            "Ingest tournament {TournamentId} ({Date}): {Fixtures} fixtures, {Events} events, {Calls} API calls, quota remaining {Quota}, {Unscored} unscored, {Dropped} event(s) dropped.",
+            tournamentId, onDate, fixturesUpserted, eventsUpserted, apiCallsUsed, quotaRemaining,
+            unscoredMatchIds.Count, droppedEvents);
 
-        return new IngestResult(fixturesUpserted, eventsUpserted, apiCallsUsed, quotaRemaining);
+        return new IngestResult(
+            fixturesUpserted, eventsUpserted, apiCallsUsed, quotaRemaining,
+            unscoredMatchIds, droppedEvents, matchesWithDroppedEvents);
     }
 
-    // Delete-and-replace: API events carry no stable id, so the whole set is rebuilt each
-    // ingest. Filters to Goal/Card, skips partial (null type/player) entries.
-    private async Task<int> ReplaceEventsAsync(
+    // Delete-and-replace: API events carry no stable id, so the whole set is rebuilt each ingest.
+    //
+    // Returns what landed *and* what was lost. The two are different kinds of skip and the caller
+    // has to tell them apart: Subst/Var are filtered (not modelled, no rule reads them, so nothing
+    // is missing), while an unmapped detail, a missing team or a missing player is a goal or card
+    // the API reported and this match will now be scored without.
+    private async Task<(int Upserted, int Dropped)> ReplaceEventsAsync(
         Match match,
         IReadOnlyList<IngestEvent> events,
         IReadOnlyDictionary<string, int> eventTypeIdByCode,
@@ -193,6 +222,8 @@ public sealed class FixtureIngestService : IFixtureIngestService
         // IMatchRepository.ReplaceEvents — a second hand-rolled copy here is exactly how the
         // IsKeySet bug (lessons.md) survived its first fix in the other three call sites.
         var mapped = new List<MatchEvent>(events.Count);
+        var dropped = 0;
+
         foreach (var ev in events)
         {
             // Only Goal/Card are seeded as dictionary rows; Subst/Var have no MatchEventTypeId.
@@ -200,23 +231,35 @@ public sealed class FixtureIngestService : IFixtureIngestService
                 continue;
 
             // Trailing partial array entries (null type/player) cannot satisfy the non-null
-            // PlayerId FK — skip; the minimal-create fallback only covers a present id.
+            // PlayerId FK — skip; the minimal-create fallback only covers a present id. Counted,
+            // not silent: a goal nobody is credited with still changes what scoring can award.
             if (ev.PlayerId is null)
+            {
+                _logger.LogWarning(
+                    "Event '{Detail}' with no player on fixture {FixtureId}; dropping.",
+                    ev.Detail, match.ExternalFixtureId);
+
+                dropped++;
                 continue;
+            }
 
             var code = MapDetailToCode(ev.Detail);
             if (code is null || !eventTypeIdByCode.TryGetValue(code, out var eventTypeId))
             {
                 _logger.LogWarning(
-                    "Unmapped event detail '{Detail}' (type '{Type}') on fixture {FixtureId}; skipping.",
+                    "Unmapped event detail '{Detail}' (type '{Type}') on fixture {FixtureId}; dropping.",
                     ev.Detail, ev.Type, match.ExternalFixtureId);
+
+                dropped++;
                 continue;
             }
 
             if (ev.Team is null)
             {
                 _logger.LogWarning(
-                    "Event with no team on fixture {FixtureId}; skipping.", match.ExternalFixtureId);
+                    "Event with no team on fixture {FixtureId}; dropping.", match.ExternalFixtureId);
+
+                dropped++;
                 continue;
             }
 
@@ -239,7 +282,7 @@ public sealed class FixtureIngestService : IFixtureIngestService
         // id would go to the database and miss the still-unsaved row.
         _matches.ReplaceEvents(match, mapped);
 
-        return mapped.Count;
+        return (mapped.Count, dropped);
     }
 
     private async Task<Guid> ResolveTeamAsync(IngestTeamRef team, Dictionary<int, Guid> cache, CancellationToken cancellationToken)
