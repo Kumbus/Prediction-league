@@ -1,10 +1,10 @@
 ---
 change_id: e2e-prediction-flow
 title: Browser-level coverage for the prediction screen and per-league scoring divergence
-status: implemented
+status: archived
 created: 2026-08-31
 updated: 2026-09-02
-archived_at: null
+archived_at: 2026-09-02T10:18:44Z
 ---
 
 ## Notes
