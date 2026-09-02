@@ -54,3 +54,16 @@ dist/
 .claude/skills/10x-tdd/SKILL.md
 .claude/skills/10x-test-plan/SKILL.md
 .claude/skills/10x-test-plan/references/test-plan-schema.md
+
+# Playwright CLI session artifacts (snapshots, console logs) and saved auth state
+.playwright-cli/
+**/playwright/.auth/
+# Runner output. src/client/.gitignore already covers these for a normal run; these entries
+# catch a `playwright test` invoked from the repo root by mistake, which writes them here.
+/test-results/
+/playwright-report/
+.claude/skills/10x-e2e/references/browser-driven-generation.md
+.claude/skills/10x-e2e/references/e2e-anti-patterns.md
+.claude/skills/10x-e2e/references/e2e-prompt-template.md
+.claude/skills/10x-e2e/references/e2e-quality-rules.md
+.claude/skills/10x-e2e/references/seed-test-pattern.md
