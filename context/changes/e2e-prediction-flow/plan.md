@@ -746,13 +746,13 @@ No data migration. Two operational notes:
 
 #### Automated
 
-- [x] 5.1 The full suite passes from a clean state
-- [x] 5.2 The server suite passes
-- [x] 5.3 Client build and lint pass
-- [x] 5.4 No "TBD — see §3 Phase 4" string remains in test-plan.md
+- [x] 5.1 The full suite passes from a clean state — 389494b
+- [x] 5.2 The server suite passes — 389494b
+- [x] 5.3 Client build and lint pass — 389494b
+- [x] 5.4 No "TBD — see §3 Phase 4" string remains in test-plan.md — 389494b
 
 #### Manual
 
-- [x] 5.5 A contributor can add an E2E test from §6.4 alone
-- [x] 5.6 The visual review records a finding or an explicit null result
-- [x] 5.7 §5's e2e gate row matches what actually runs today
+- [x] 5.5 A contributor can add an E2E test from §6.4 alone — 389494b
+- [x] 5.6 The visual review records a finding or an explicit null result — 389494b
+- [x] 5.7 §5's e2e gate row matches what actually runs today — 389494b
