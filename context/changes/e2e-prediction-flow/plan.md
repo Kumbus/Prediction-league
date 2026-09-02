@@ -697,34 +697,34 @@ No data migration. Two operational notes:
 
 #### Automated
 
-- [x] 2.1 Lint and type-check pass over the new test sources
-- [x] 2.2 The setup projects complete
-- [x] 2.3 Both storage-state files and the manifest exist after setup
-- [x] 2.4 The smoke spec passes
-- [x] 2.5 Two consecutive full runs both pass
+- [x] 2.1 Lint and type-check pass over the new test sources — c9473e5
+- [x] 2.2 The setup projects complete — c9473e5
+- [x] 2.3 Both storage-state files and the manifest exist after setup — c9473e5
+- [x] 2.4 The smoke spec passes — c9473e5
+- [x] 2.5 Two consecutive full runs both pass — c9473e5
 
 #### Manual
 
-- [x] 2.6 The member sees exactly two run-suffixed leagues on the fixture tournament
-- [x] 2.7 Both leagues show their two different configured rule sets
-- [x] 2.8 Removing the admin allowlist entry fails auth.setup.ts with its own message
+- [x] 2.6 The member sees exactly two run-suffixed leagues on the fixture tournament — c9473e5
+- [x] 2.7 Both leagues show their two different configured rule sets — c9473e5
+- [x] 2.8 Removing the admin allowlist entry fails auth.setup.ts with its own message — c9473e5
 
 ### Phase 3: Risk #6 — the prediction screen reads clearly
 
 #### Automated
 
-- [ ] 3.1 Lint and type-check pass
-- [ ] 3.2 The spec passes
-- [ ] 3.3 The spec passes alone and as part of the full suite
-- [ ] 3.4 The full suite passes twice in a row
-- [ ] 3.5 Mutation check: unconditional awardedPoints render turns the spec red
-- [ ] 3.6 Mutation check: changed "Locked at kickoff." copy turns the spec red
+- [x] 3.1 Lint and type-check pass
+- [x] 3.2 The spec passes
+- [x] 3.3 The spec passes alone and as part of the full suite
+- [x] 3.4 The full suite passes twice in a row
+- [x] 3.5 Mutation check: unconditional awardedPoints render turns the spec red
+- [x] 3.6 Mutation check: changed "Locked at kickoff." copy turns the spec red
 
 #### Manual
 
-- [ ] 3.7 Spec reviewed against the five anti-patterns
-- [ ] 3.8 Each test name states a risk, not a mechanism
-- [ ] 3.9 The four states are visible by hand on League A's predictions page
+- [x] 3.7 Spec reviewed against the five anti-patterns
+- [x] 3.8 Each test name states a risk, not a mechanism
+- [x] 3.9 The four states are visible by hand on League A's predictions page
 
 ### Phase 4: Risk #2 — two leagues do not converge
 
