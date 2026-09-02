@@ -17,8 +17,11 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
-    // Authentication and fixture data are built once per run, never per test.
-    { name: "setup", testMatch: /.*\.setup\.ts/ },
-    { name: "e2e", testMatch: /.*\.spec\.ts/, dependencies: ["setup"] },
+    // Authentication and fixture data are built once per run, never per test. These are two
+    // projects rather than one because Playwright parallelizes files WITHIN a project — only a
+    // project dependency guarantees the storage states exist before the graph builder reads them.
+    { name: "setup:auth", testMatch: /auth\.setup\.ts/ },
+    { name: "setup:fixture", testMatch: /fixture\.setup\.ts/, dependencies: ["setup:auth"] },
+    { name: "e2e", testMatch: /.*\.spec\.ts/, dependencies: ["setup:fixture"] },
   ],
 })

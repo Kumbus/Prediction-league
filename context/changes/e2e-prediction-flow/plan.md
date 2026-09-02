@@ -682,32 +682,32 @@ No data migration. Two operational notes:
 
 #### Automated
 
-- [x] 1.1 Client type-check and lint pass
-- [x] 1.2 The seed spec passes
-- [x] 1.3 The preflight aborts with its named message when the API is stopped
-- [x] 1.4 Server builds with the new configuration
+- [x] 1.1 Client type-check and lint pass — e85a90f
+- [x] 1.2 The seed spec passes — e85a90f
+- [x] 1.3 The preflight aborts with its named message when the API is stopped — e85a90f
+- [x] 1.4 Server builds with the new configuration — e85a90f
 
 #### Manual
 
-- [x] 1.5 Sign out lands on the landing page, not on /sign-in
-- [x] 1.6 The E2E admin address shows admin navigation
-- [x] 1.7 No auth state or manifest files staged
+- [x] 1.5 Sign out lands on the landing page, not on /sign-in — e85a90f
+- [x] 1.6 The E2E admin address shows admin navigation — e85a90f
+- [x] 1.7 No auth state or manifest files staged — e85a90f
 
 ### Phase 2: Fixture layer
 
 #### Automated
 
-- [ ] 2.1 Lint and type-check pass over the new test sources
-- [ ] 2.2 The setup projects complete
-- [ ] 2.3 Both storage-state files and the manifest exist after setup
-- [ ] 2.4 The smoke spec passes
-- [ ] 2.5 Two consecutive full runs both pass
+- [x] 2.1 Lint and type-check pass over the new test sources
+- [x] 2.2 The setup projects complete
+- [x] 2.3 Both storage-state files and the manifest exist after setup
+- [x] 2.4 The smoke spec passes
+- [x] 2.5 Two consecutive full runs both pass
 
 #### Manual
 
-- [ ] 2.6 The member sees exactly two run-suffixed leagues on the fixture tournament
-- [ ] 2.7 Both leagues show their two different configured rule sets
-- [ ] 2.8 Removing the admin allowlist entry fails auth.setup.ts with its own message
+- [x] 2.6 The member sees exactly two run-suffixed leagues on the fixture tournament
+- [x] 2.7 Both leagues show their two different configured rule sets
+- [x] 2.8 Removing the admin allowlist entry fails auth.setup.ts with its own message
 
 ### Phase 3: Risk #6 — the prediction screen reads clearly
 
