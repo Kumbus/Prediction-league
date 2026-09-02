@@ -730,29 +730,29 @@ No data migration. Two operational notes:
 
 #### Automated
 
-- [x] 4.1 Lint and type-check pass
-- [x] 4.2 The spec passes
-- [x] 4.3 The full suite passes twice in a row
-- [x] 4.4 Mutation check: a tournament-wide shared rule set turns the spec red
-- [x] 4.5 The server suite still passes
+- [x] 4.1 Lint and type-check pass — ce184f9
+- [x] 4.2 The spec passes — ce184f9
+- [x] 4.3 The full suite passes twice in a row — ce184f9
+- [x] 4.4 Mutation check: a tournament-wide shared rule set turns the spec red — ce184f9
+- [x] 4.5 The server suite still passes — ce184f9
 
 #### Manual
 
-- [x] 4.6 Both standings pages show the asserted totals by hand
-- [x] 4.7 Each expected total is justifiable from its league's rules alone
-- [x] 4.8 Spec reviewed against the five anti-patterns
+- [x] 4.6 Both standings pages show the asserted totals by hand — ce184f9
+- [x] 4.7 Each expected total is justifiable from its league's rules alone — ce184f9
+- [x] 4.8 Spec reviewed against the five anti-patterns — ce184f9
 
 ### Phase 5: Visual review and close-out
 
 #### Automated
 
-- [ ] 5.1 The full suite passes from a clean state
-- [ ] 5.2 The server suite passes
-- [ ] 5.3 Client build and lint pass
-- [ ] 5.4 No "TBD — see §3 Phase 4" string remains in test-plan.md
+- [x] 5.1 The full suite passes from a clean state
+- [x] 5.2 The server suite passes
+- [x] 5.3 Client build and lint pass
+- [x] 5.4 No "TBD — see §3 Phase 4" string remains in test-plan.md
 
 #### Manual
 
-- [ ] 5.5 A contributor can add an E2E test from §6.4 alone
-- [ ] 5.6 The visual review records a finding or an explicit null result
-- [ ] 5.7 §5's e2e gate row matches what actually runs today
+- [x] 5.5 A contributor can add an E2E test from §6.4 alone
+- [x] 5.6 The visual review records a finding or an explicit null result
+- [x] 5.7 §5's e2e gate row matches what actually runs today

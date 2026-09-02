@@ -6,7 +6,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-08-31
+> Last updated: 2026-09-02
 
 ## 1. Strategy
 
@@ -78,7 +78,7 @@ orchestrator updates Status as artifacts appear on disk.
 | 1 | Scoring engine truth table | Prove awarded points match a league's own rules, and that two leagues do not converge | #1, #2 | unit | complete | `context/changes/testing-scoring-engine/` |
 | 2 | Persistence write-path | Prove a second write against an existing aggregate inserts instead of throwing | #3 | integration | not started | — |
 | 3 | API contract and authorization | Prove kickoff lock and per-league isolation are enforced server-side | #4, #5, #7 | integration | not started | — |
-| 4 | Critical-flow e2e and selective visual review | Prove the predict to score to standings loop works end-to-end and the prediction screen reads clearly | #6, #2 | e2e, multimodal visual review | not started | — |
+| 4 | Critical-flow e2e and selective visual review | Prove the predict to score to standings loop works end-to-end and the prediction screen reads clearly | #6, #2 | e2e, multimodal visual review | complete | `context/changes/e2e-prediction-flow/` |
 | 5 | Quality-gates wiring | Lock the floor in CI and in the local agent loop | cross-cutting | gates | not started | — |
 
 **Status vocabulary** (fixed — parser literals): `not started`,
@@ -117,9 +117,9 @@ phase lands; before that, the gate is planned.
 | build (server) | local + CI | required | compile-time drift across the five projects |
 | unit (server) | local + CI | **live** (§3 Phase 1 landed) | scoring logic regressions, per-league rule isolation. Enforced by the `Run tests` step in the `build` job of `.github/workflows/deploy-backend.yml`, positioned after `Restore` and before `Publish API`, so a red test blocks the deploy. **Known gap:** that workflow triggers only on push to `main` (plus `workflow_dispatch`) — there is no PR-triggered server workflow, so PRs are **not** gated by this suite. Closing that is §3 Phase 5's job; until then "local + CI" means post-merge CI. |
 | integration (server) | local + CI | required after §3 Phase 3 | persistence write-path 500s, kickoff-lock bypass, cross-league access |
-| e2e on critical flows | CI on PR | required after §3 Phase 4 | broken predict to score to standings loop |
-| post-edit hook | local (agent loop) | recommended after §3 Phase 5 | regressions at edit time, before review |
-| multimodal visual review | CI on PR | optional, after §3 Phase 4 | unreadable prediction / standings screens that assertions cannot express |
+| e2e on critical flows | local (`npm run e2e`) | **live, local only** (§3 Phase 4 landed) | broken predict to score to standings loop; per-league scoring converging. **CI on PR deferred to §3 Phase 5**, deliberately: the suite drives a three-process stack (SQL Server + API + SPA) that it does not start, and there is no PR-triggered server workflow to hang it on (see the unit row's known gap). Until then nothing mechanically blocks a PR that breaks the loop. |
+| post-edit hook | local (agent loop) | **live** (landed 2026-08-31, ahead of §3 Phase 5) | regressions at edit time, before review. `PostToolUse` matcher `Write\|Edit` in `.claude/settings.json` runs `.claude/hooks/post-edit-check.mjs`: client TS edits get `eslint --fix` + `tsc -b`; server `.cs` edits inside the scoring risk area (#1/#2) run the xUnit suite; other paths are a no-op. Failure exits 2, so the message reaches the agent's context. |
+| multimodal visual review | local, on demand | optional (§3 Phase 4 landed one pass) | unreadable prediction / standings screens that assertions cannot express. Deliberately not a gate: it is a recorded human judgement, not a check — see §6.5 and `context/changes/e2e-prediction-flow/visual-review.md` |
 | pre-prod smoke | between merge and prod | optional, after §3 Phase 5 | environment-specific failures on Azure App Service |
 
 ## 6. Cookbook Patterns
@@ -223,15 +223,100 @@ A test whose mutant survives is a test that would not have caught the bug.
 
 ### 6.4 Adding an e2e test
 
-- TBD — see §3 Phase 4. One spec exists today at
-  `src/client/tests/e2e/auth.spec.ts`; run with `npm run e2e` from
-  `src/client`. The phase extends this base to the predict to score to
-  standings loop (risk #6).
+**Where it goes.** `src/client/tests/e2e/<feature>.spec.ts`, one spec file per
+risk. Run the whole suite with `npm run e2e` from `src/client`.
+
+**Bring the stack up first.** The suite deliberately has **no `webServer`**: it
+needs SQL Server, the API on its https profile (`:7182`) and the SPA dev server
+(`:5173`), and Playwright can start none of them. `tests/e2e/global-setup.ts`
+probes all of it and aborts in ~3s naming what is missing, so a dead stack reads
+as one line rather than a wall of navigation timeouts.
+
+**Never authenticate through the UI.** Three projects run in order —
+`setup:auth` → `setup:fixture` → `e2e` — and the first writes one `storageState`
+per role under `playwright/.auth/`. A spec opts in with
+`test.use({ storageState: memberStatePath })`. They are separate *projects*, not
+files in one project, because Playwright parallelizes files **within** a project;
+only a project dependency guarantees the states exist before the graph is built.
+`auth.spec.ts` is the sole exception — signing in is what it tests.
+
+**Never hardcode fixture data.** `setup:fixture` builds the graph and writes
+`playwright/.fixtures/manifest.json`; specs read it with `readManifest()`. Call
+that **inside a test body**, never at module scope — Playwright loads every spec
+file before the setup project runs, so a module-level read fires against a
+manifest that does not exist yet.
+
+**The admin is a stable allowlisted account, and its cookie is the subtle part.**
+`Admin:Emails` is an exact-match list, so a per-run unique address can never be
+promoted; `e2e-admin@example.test` lives at `Admin:Emails:0` in
+`appsettings.Development.json`. Configuration merges arrays **by index** and
+user-secrets load later, so a personal admin in secrets must sit at index 1 or
+higher. Worse: `AdminOnly` is a `RequireClaim` policy and the claim is baked into
+the cookie at sign-in, so on the run that first promotes the account the session
+authenticates, reports `isGlobalAdmin: true` from the database, and still 403s on
+every write. `auth.setup.ts` therefore signs in **again** after promotion and
+probes a real `AdminOnly` endpoint.
+
+**Fixture ordering is load-bearing, and the obvious order fails.** A league can
+only be created on a **published** tournament, and a forecast can only be filed
+while its match is still open. So: tournament → publish → leagues → teams →
+matches with future kickoffs → forecasts → move kickoffs into the past → enter
+results. There is **no injected clock**; kickoff timestamps are the only lever
+over the lock.
+
+**Assert the rendered verdict, never the HTTP status.** The prediction batch write
+answers `200` carrying per-item `Saved`/`Locked`/`Invalid`, and the admin match
+write answers `200` carrying `ScoringFailed`. A test built on status alone passes
+against a broken system. The fixture helpers reject both cases explicitly.
+
+**Locators.** `getByRole` / `getByLabel` / `getByText` only. Two facts make this
+possible without a single `data-testid`: the score inputs are labelled with the
+**team names**, and a locked row renders its forecast and its points inside one
+`<p>`, so matching the forecast text scopes an assertion to exactly that row.
+Watch the characters — the score separator is an **en-dash (U+2013)** and the
+points separator is `·` (U+00B7). Shared copy such as `Locked at kickoff.` cannot
+be scoped to a row at all (the row has no accessible container), so assert its
+**count** instead of its visibility.
+
+**No teardown.** There is no `DELETE /api/leagues/{id}`, and deleting a tournament
+409s while any league references it — so cleanup through the API is impossible.
+Every entity is named with a per-run `e2e-<timestamp>-<rand>` prefix instead, which
+is also required because team names are globally unique server-side. The dev
+database accumulates one member, one tournament, four teams, four matches and two
+leagues per run.
+
+**Typecheck covers the suite.** `tsconfig.e2e.json` is referenced from the root
+`tsconfig.json`, so `npm run build` typechecks `tests/` too. It caught a real DTO
+shape bug on its first run; before it existed, `tests/` compiled only at runtime.
+
+**Prove the test is not vacuous.** Same discipline as §6.1: after a spec goes
+green, break the behaviour it claims to guard, confirm it goes red, and revert. A
+mutant that survives means the assertion protects nothing. Phase 4 verified two
+this way — rendering `awardedPoints` unconditionally (an unscored row then reads
+`· 0 pts`) and collapsing the per-league rule lookup to one tournament-wide set.
+Server-side mutants need a rebuild and an API restart to take effect.
 
 ### 6.5 Adding a visual review of a screen
 
-- TBD — see §3 Phase 4. Selective by design: 1–3 screens, never a
-  per-page sweep. Must record the "when NOT to use" boundary from §4.
+**Selective by design**: 1–3 screens, once, recorded. Never a per-page sweep,
+never merge-blocking, and never layered over what a deterministic assertion
+already catches (§4).
+
+**Worked example**: `context/changes/e2e-prediction-flow/visual-review.md` —
+the prediction and standings screens reviewed against the three questions risk #6
+asks ("what can I still change, what did I save, what is it worth"), with the
+prompt, the screens, and six findings recorded.
+
+**How.** Capture full-page screenshots from the live app using a stored session,
+then review them against a written prompt. Capture with a throwaway script rather
+than wiring screenshots into the specs: capturing is not reviewing, and unreviewed
+images just accumulate.
+
+**What counts as a finding.** Only things an assertion cannot express — contrast,
+whether an affordance is signalled positively or only by absence, whether a number
+is explicable to the person reading it. "The string is present" is the specs' job.
+Record a null result explicitly if the screens read cleanly; that is a valid
+outcome, not a failed review.
 
 ### 6.6 Per-rollout-phase notes
 
@@ -249,6 +334,35 @@ Two things a later phase should not have to rediscover:
   during implementation and approved.
 - The CI gate is live but post-merge only; PRs stay ungated until Phase 5 wires
   a PR-triggered server workflow. Recorded in §5.
+
+**Phase 4 — Critical-flow e2e and selective visual review (2026-09-02,
+`e2e-prediction-flow`).** Landed nine browser tests across two specs —
+`predictions-legibility.spec.ts` (risk #6) and `league-scoring-divergence.spec.ts`
+(risk #2) — on a fixture layer that builds a four-match, two-league graph through
+the API once per run. Both risks had been verified by hand only since
+2026-08-25. Full recipe in §6.4; one visual review recorded in §6.5.
+
+Four things a later phase should not have to rediscover:
+
+- **API teardown is impossible.** There is no `DELETE /api/leagues/{id}`, and
+  deleting a tournament 409s while a league references it. Every run therefore
+  leaks a member, a tournament, four teams, four matches and two leagues into the
+  dev database. If that ever becomes a problem the fix is a product change (a
+  league delete, or a test-only reset endpoint), not a test-side workaround.
+- **Admin identity is gated twice over.** `Admin:Emails` is an exact-match list
+  *and* configuration merges arrays by index, so the E2E admin at
+  `appsettings.Development.json` index 0 is silently replaced by any personal
+  admin a developer keeps in user-secrets at the same index. Separately,
+  `AdminOnly` is a claim policy, so the session that first promotes the account
+  holds a pre-promotion cookie and 403s despite reporting `isGlobalAdmin: true`.
+  Both cost real debugging; both are now asserted in `auth.setup.ts`.
+- **The e2e gate is local, not CI.** §5 was rewritten to say so rather than
+  claiming a gate that does not exist. Wiring it needs the three-process stack
+  and a PR-triggered workflow — Phase 5's job, alongside the same gap on the unit
+  suite.
+- **The plan assumed one `setup` project; two are required.** Playwright
+  parallelizes files within a project, so ordering auth before fixture
+  construction needs a project dependency, not file order.
 
 ## 7. What We Deliberately Don't Test
 
@@ -269,7 +383,7 @@ contributors should respect these unless the underlying assumption changes.
 
 ## 8. Freshness Ledger
 
-- Strategy (§1–§5) last reviewed: 2026-08-31
+- Strategy (§1–§5) last reviewed: 2026-09-02
 - Stack versions last verified: 2026-08-31
 - AI-native tool references last verified: 2026-08-31
 
