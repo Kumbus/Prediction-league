@@ -67,3 +67,4 @@ dist/
 .claude/skills/10x-e2e/references/e2e-prompt-template.md
 .claude/skills/10x-e2e/references/e2e-quality-rules.md
 .claude/skills/10x-e2e/references/seed-test-pattern.md
+.claude/skills/10x-e2e/SKILL.md
