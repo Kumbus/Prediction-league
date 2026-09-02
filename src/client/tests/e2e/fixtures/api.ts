@@ -153,6 +153,12 @@ export async function createTeam(api: APIRequestContext, name: string): Promise<
   return json<TeamResponse>(await api.post("/api/teams", { data: { name } }), `create team "${name}"`)
 }
 
+// Teams are global reference data with no DELETE route, so a test that needs opponents but not
+// specific ones should borrow rather than create — otherwise every run leaks two rows.
+export async function listTeams(api: APIRequestContext): Promise<TeamResponse[]> {
+  return json<TeamResponse[]>(await api.get("/api/teams"), "GET /api/teams")
+}
+
 // Creating a league seeds the caller's own organizer membership (LeaguesController.cs:175-184),
 // so the creator is already a member — no join step.
 export async function createLeague(
@@ -165,6 +171,18 @@ export async function createLeague(
     await api.post("/api/leagues", { data: { name, tournamentId, scoringRules } }),
     `create league "${name}"`,
   )
+}
+
+// Leaving a league you are the sole member of destroys it — the only path in this API that
+// removes one (LeaguesController.cs:288-291). That is what makes a self-owned graph reversible.
+export async function leaveLeague(api: APIRequestContext, leagueId: string): Promise<void> {
+  await ok(await api.delete(`/api/leagues/${leagueId}/membership`), `leave league ${leagueId}`)
+}
+
+// Refused with 409 while any league still references the tournament, so leave the league first.
+// Cascades the tournament's matches.
+export async function deleteTournament(api: APIRequestContext, tournamentId: string): Promise<void> {
+  await ok(await api.delete(`/api/tournaments/${tournamentId}`), `delete tournament ${tournamentId}`)
 }
 
 export async function createMatch(

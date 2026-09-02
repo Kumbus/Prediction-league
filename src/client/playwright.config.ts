@@ -15,6 +15,12 @@ export default defineConfig({
     baseURL: "https://localhost:5173",
     // The dev server serves a self-signed certificate (@vitejs/plugin-basic-ssl).
     ignoreHTTPSErrors: true,
+    // seed.spec.ts has shown a rare intermittent failure (~1 run in 18) that could not be
+    // reproduced on demand, and Playwright clears test-results at the start of every run — so the
+    // evidence vanished before it could be read. Keep it next time: `npx playwright show-trace`
+    // on the retained trace is what turns this from a guess into a diagnosis.
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     // Authentication and fixture data are built once per run, never per test. These are two

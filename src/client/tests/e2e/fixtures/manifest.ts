@@ -15,6 +15,8 @@ export interface ForecastScore {
 export interface FixtureManifest {
   runId: string
   member: { id: string; displayName: string }
+  /** Published, so a league can be created on it — the seed test picks it in the form. */
+  tournament: { id: string; name: string }
   round: string
   leagues: {
     a: { id: string; name: string }

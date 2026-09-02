@@ -164,6 +164,7 @@ setup("fixture graph is built and the manifest is written", async () => {
     const manifest: FixtureManifest = {
       runId,
       member: { id: profile.id, displayName: profile.displayName },
+      tournament: { id: tournament.id, name: tournament.name },
       round: ROUND,
       leagues: {
         a: { id: leagueA.id, name: leagueA.name },

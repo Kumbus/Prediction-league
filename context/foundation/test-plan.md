@@ -278,12 +278,22 @@ points separator is `·` (U+00B7). Shared copy such as `Locked at kickoff.` cann
 be scoped to a row at all (the row has no accessible container), so assert its
 **count** instead of its visibility.
 
-**No teardown.** There is no `DELETE /api/leagues/{id}`, and deleting a tournament
-409s while any league references it — so cleanup through the API is impossible.
-Every entity is named with a per-run `e2e-<timestamp>-<rand>` prefix instead, which
-is also required because team names are globally unique server-side. The dev
-database accumulates one member, one tournament, four teams, four matches and two
-leagues per run.
+**Unique identifiers always; teardown where the API allows it.** Every entity is
+named with a per-run `e2e-<timestamp>-<rand>` prefix — required regardless, because
+team names are globally unique server-side and a re-run would otherwise 409.
+
+Teardown is narrower than it looks but **not** impossible. There is no
+`DELETE /api/leagues/{id}` and deleting a tournament 409s while any league
+references it, so the shared fixture graph is not unwound and the dev database
+accumulates one member, one tournament, four teams, four matches and two leagues
+per run. But **a sole member leaving a league destroys it**
+(`LeaguesController.cs:288-291` — the only path that removes one), and matches and
+tournaments have real `DELETE` routes. So a test that creates something it solely
+owns can and should clean up after itself: `seed.spec.ts` does exactly that, and
+asserts the deletion rather than assuming it.
+
+Prefer that shape for anything a single test creates. Fall back to unique-ids-only
+when the API genuinely offers no reversal.
 
 **Typecheck covers the suite.** `tsconfig.e2e.json` is referenced from the root
 `tsconfig.json`, so `npm run build` typechecks `tests/` too. It caught a real DTO
@@ -344,11 +354,15 @@ the API once per run. Both risks had been verified by hand only since
 
 Four things a later phase should not have to rediscover:
 
-- **API teardown is impossible.** There is no `DELETE /api/leagues/{id}`, and
-  deleting a tournament 409s while a league references it. Every run therefore
-  leaks a member, a tournament, four teams, four matches and two leagues into the
-  dev database. If that ever becomes a problem the fix is a product change (a
-  league delete, or a test-only reset endpoint), not a test-side workaround.
+- **Teardown of the shared graph is impractical, but per-test cleanup is not.**
+  Corrected after the phase closed: the original note claimed API teardown was
+  impossible. There is indeed no `DELETE /api/leagues/{id}` and deleting a
+  tournament 409s while a league references it, so the fixture graph is left in
+  place and every run leaks a member, a tournament, four teams, four matches and
+  two leagues. But a **sole member leaving a league destroys it**
+  (`LeaguesController.cs:288-291`), so a test that solely owns what it created can
+  reverse itself — `seed.spec.ts` does. Unwinding the shared graph would still want
+  a product change; individual tests do not need one.
 - **Admin identity is gated twice over.** `Admin:Emails` is an exact-match list
   *and* configuration merges arrays by index, so the E2E admin at
   `appsettings.Development.json` index 0 is silently replaced by any personal
