@@ -150,8 +150,16 @@ export interface MatchImportResult {
 
 export interface IngestResult {
   fixturesUpserted: number
-  eventsReplaced: number
-  playersCreated: number
+  eventsUpserted: number
+  apiCallsUsed: number
+  quotaRemaining: number | null
+  // Matches whose result was ingested but whose points did not follow — the run's
+  // partial-success verdict. Empty means every match scored, never "nobody looked".
+  unscoredMatchIds: string[]
+  // Goal/card events the API reported that could not be persisted, and the matches now
+  // missing them. Those matches scored against an incomplete set.
+  droppedEvents: number
+  matchesWithDroppedEvents: string[]
 }
 
 export interface PlayerImportRow {

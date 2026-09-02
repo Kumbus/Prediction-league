@@ -14,9 +14,10 @@ export function SignOutButton() {
     // Leave the guarded subtree BEFORE the session drops. This button renders inside
     // RequireAuth, which navigates to /sign-in the moment auth status becomes "anonymous"
     // (RequireAuth.tsx:20) — so signing out first lets that redirect win and "/" never
-    // renders. signOut swallows its own errors and always clears state
-    // (AuthContext.tsx:30-36), so navigating first cannot park an authenticated session on
-    // the landing page.
+    // renders. signOut never throws and always clears state (AuthContext.tsx), so navigating
+    // first cannot park an authenticated session on the landing page. When the request itself
+    // failed it records that on the state instead, and the landing page reports it — this button
+    // has unmounted with the shell by then and could not.
     navigate("/", { replace: true })
     try {
       await signOut()
