@@ -713,34 +713,34 @@ No data migration. Two operational notes:
 
 #### Automated
 
-- [x] 3.1 Lint and type-check pass
-- [x] 3.2 The spec passes
-- [x] 3.3 The spec passes alone and as part of the full suite
-- [x] 3.4 The full suite passes twice in a row
-- [x] 3.5 Mutation check: unconditional awardedPoints render turns the spec red
-- [x] 3.6 Mutation check: changed "Locked at kickoff." copy turns the spec red
+- [x] 3.1 Lint and type-check pass — 081a25c
+- [x] 3.2 The spec passes — 081a25c
+- [x] 3.3 The spec passes alone and as part of the full suite — 081a25c
+- [x] 3.4 The full suite passes twice in a row — 081a25c
+- [x] 3.5 Mutation check: unconditional awardedPoints render turns the spec red — 081a25c
+- [x] 3.6 Mutation check: changed "Locked at kickoff." copy turns the spec red — 081a25c
 
 #### Manual
 
-- [x] 3.7 Spec reviewed against the five anti-patterns
-- [x] 3.8 Each test name states a risk, not a mechanism
-- [x] 3.9 The four states are visible by hand on League A's predictions page
+- [x] 3.7 Spec reviewed against the five anti-patterns — 081a25c
+- [x] 3.8 Each test name states a risk, not a mechanism — 081a25c
+- [x] 3.9 The four states are visible by hand on League A's predictions page — 081a25c
 
 ### Phase 4: Risk #2 — two leagues do not converge
 
 #### Automated
 
-- [ ] 4.1 Lint and type-check pass
-- [ ] 4.2 The spec passes
-- [ ] 4.3 The full suite passes twice in a row
-- [ ] 4.4 Mutation check: a tournament-wide shared rule set turns the spec red
-- [ ] 4.5 The server suite still passes
+- [x] 4.1 Lint and type-check pass
+- [x] 4.2 The spec passes
+- [x] 4.3 The full suite passes twice in a row
+- [x] 4.4 Mutation check: a tournament-wide shared rule set turns the spec red
+- [x] 4.5 The server suite still passes
 
 #### Manual
 
-- [ ] 4.6 Both standings pages show the asserted totals by hand
-- [ ] 4.7 Each expected total is justifiable from its league's rules alone
-- [ ] 4.8 Spec reviewed against the five anti-patterns
+- [x] 4.6 Both standings pages show the asserted totals by hand
+- [x] 4.7 Each expected total is justifiable from its league's rules alone
+- [x] 4.8 Spec reviewed against the five anti-patterns
 
 ### Phase 5: Visual review and close-out
 
