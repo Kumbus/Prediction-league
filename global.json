@@ -1,0 +1,6 @@
+{
+  "//": "dotnet test on the .NET 10 SDK no longer supports the VSTest target; xunit.v3 4.x runs on Microsoft.Testing.Platform. No 'sdk' key on purpose: this selects the test runner, it does not pin an SDK version.",
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}

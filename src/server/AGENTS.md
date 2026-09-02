@@ -7,8 +7,9 @@ ASP.NET Core Web API (.NET 10, C#) for Prediction League. This directory is self
 - Run: `dotnet run` (dev URL `http://localhost:5185`; sample requests in `PredictionLeague.http`)
 - Build: `dotnet build`
 - Solution: `prediction-league.slnx` — `.slnx` XML format, not `.sln`
-
-No tests exist yet. Don't claim any pass.
+- Test: `dotnet test prediction-league.slnx` — but run it from the **repo root**, not here:
+  the runner is selected by a root `global.json` (xUnit v3 on Microsoft.Testing.Platform;
+  the .NET 10 SDK dropped VSTest). Suite: `PredictionLeague.Tests` (Shouldly + NSubstitute).
 
 ## Conventions
 
@@ -24,4 +25,4 @@ No tests exist yet. Don't claim any pass.
 
 ## Domain
 
-Scoring is per-league and data-driven: `ScoringRule` maps a `ScoringParameter` (`ExactScore`, `CorrectOutcome`, `CorrectGoalScorer`, `CorrectCardCount`) to `Points`. Never hardcode point values.
+Scoring is per-league and data-driven: `ScoringRule` maps a `ScoringParameter` (`ExactScore`, `CorrectOutcome`, `CorrectGoalScorer`, `CorrectCardCount`, `CorrectYellowCards`, `CorrectRedCards`) to `Points`. Never hardcode point values.

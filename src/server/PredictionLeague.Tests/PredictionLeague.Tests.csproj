@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- xunit.v3 test projects are executables: they host the Microsoft.Testing.Platform runner. -->
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PredictionLeague.Domain\PredictionLeague.Domain.csproj" />
+    <ProjectReference Include="..\PredictionLeague.Infrastructure\PredictionLeague.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- xunit.v3 4.x carries Microsoft.Testing.Platform; the VSTest target it replaces is gone on the
+       .NET 10 SDK, so Microsoft.NET.Test.Sdk and xunit.runner.visualstudio are deliberately absent.
+       The runner is selected by the repo-root global.json. -->
+  <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

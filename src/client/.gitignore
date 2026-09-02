@@ -33,3 +33,6 @@ dist-ssr
 /test-results
 /playwright-report
 /playwright/.cache
+# Per-run auth state and the fixture manifest the setup project writes.
+/playwright/.auth
+/playwright/.fixtures
