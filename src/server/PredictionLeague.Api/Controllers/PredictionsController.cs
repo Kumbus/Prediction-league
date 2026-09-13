@@ -102,10 +102,15 @@ public class PredictionsController : ControllerBase
         IReadOnlyList<ScoringParameter> ScoredParameters,
         IReadOnlyList<MatchPredictionRowResponse> Matches);
 
+    // The scores are nullable for a reason that is not about optionality: they are required. A
+    // non-nullable int cannot tell an ABSENT field from a zero, so an item that omitted a score —
+    // a client typo, a stale field name — bound to 0 and stored a real-looking goalless draw that
+    // the member never forecast, reported as "Saved". Nullable makes absence visible; Submit
+    // rejects it as Invalid.
     public record PredictionItemRequest(
         Guid MatchId,
-        int HomeScore,
-        int AwayScore,
+        int? HomeScore,
+        int? AwayScore,
         Guid? FirstScorerPlayerId,
         Guid? FirstScorerTeamId,
         int? TotalCards,
@@ -227,6 +232,16 @@ public class PredictionsController : ControllerBase
                 continue;
             }
 
+            // Both scores are what makes an item a forecast at all — every other field is a
+            // league-dependent extra. Checked after the lock so a closed match still reports
+            // Locked, which is the more useful thing to tell a member about that row.
+            if (item.HomeScore is not { } homeScore || item.AwayScore is not { } awayScore)
+            {
+                outcomes.Add(new PredictionOutcomeResponse(item.MatchId, PredictionItemStatus.Invalid,
+                    "Both scores are required."));
+                continue;
+            }
+
             var invalid = ValidateItem(item, match, scored, CandidatesFor(candidates, match));
             if (invalid is not null)
             {
@@ -240,8 +255,8 @@ public class PredictionsController : ControllerBase
                 LeagueId = league.Id,
                 UserId = userId,
                 MatchId = item.MatchId,
-                PredictedHomeScore = item.HomeScore,
-                PredictedAwayScore = item.AwayScore,
+                PredictedHomeScore = homeScore,
+                PredictedAwayScore = awayScore,
                 PredictedFirstScorerPlayerId = item.FirstScorerPlayerId,
                 PredictedFirstScorerTeamId = item.FirstScorerTeamId,
                 PredictedTotalCards = item.TotalCards,
@@ -486,7 +501,10 @@ public class PredictionsController : ControllerBase
         HashSet<ScoringParameter> scored,
         IReadOnlyList<EligibleScorerDto> eligible)
     {
-        if (item.HomeScore < 0 || item.HomeScore > MaxScore || item.AwayScore < 0 || item.AwayScore > MaxScore)
+        // Pattern matching, so a null score does not silently satisfy a comparison. Submit has
+        // already rejected the absent case by the time this runs; this stays null-safe anyway
+        // rather than depending on the order of two methods staying as it is today.
+        if (item.HomeScore is null or < 0 or > MaxScore || item.AwayScore is null or < 0 or > MaxScore)
             return $"Scores must be between 0 and {MaxScore}.";
 
         var cardError =
