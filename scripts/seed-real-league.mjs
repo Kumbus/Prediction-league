@@ -41,12 +41,12 @@ const COMPETITIONS = {
 const DEFAULTS = {
   api: "https://localhost:7182",
   competition: "en.1",
-  season: "2025-26",
-  // Matchdays replayed with their real results. Eight gives a table with real separation
-  // between members without the script making ~500 writes.
+  season: "2026-27",
+  // Matchdays replayed with their real results, from the start of the season. Capped by what has
+  // actually been played — early in a live season that is three or four, and asking for more
+  // simply replays everything there is.
   played: 8,
-  // Matchdays left open, with kickoffs shifted into the future, so there is something to
-  // forecast when you open the app.
+  // Matchdays left open for forecasting, taken from immediately after the last replayed one.
   upcoming: 2,
   members: 6,
   adminEmail: "e2e-admin@example.test",
@@ -304,13 +304,22 @@ async function main() {
   const source = await fetchCompetition(opts.competition, opts.season)
 
   const rounds = groupRounds(source.matches ?? [])
-  const played = rounds.slice(0, opts.played).filter((r) => r.fixtures.some((f) => fullTimeScore(f)))
-  const upcoming = rounds.slice(opts.played, opts.played + opts.upcoming)
+
+  // In a live season only the leading rounds carry results, and how many is the season's business,
+  // not a flag's. Take the last round that has any, replay up to --played from the start, and open
+  // the rounds immediately after whatever was replayed — so a mid-season dataset leaves no gap
+  // between the table and the fixtures on offer.
+  const lastPlayedIndex = rounds.reduce(
+    (last, round, i) => (round.fixtures.some((f) => fullTimeScore(f)) ? i : last),
+    -1,
+  )
+  const played = rounds.slice(0, lastPlayedIndex + 1).slice(0, opts.played)
+  const upcoming = rounds.slice(played.length, played.length + opts.upcoming)
 
   if (played.length === 0) {
     throw new Error(
-      `No played matchdays found in the first ${opts.played} rounds of ${opts.competition} ${opts.season}.\n` +
-        "Pick a season that has already been played, or lower --played.",
+      `No played matchdays found in ${opts.competition} ${opts.season}.\n` +
+        "The season may not have started yet — pick an earlier one.",
     )
   }
 
@@ -470,10 +479,15 @@ async function main() {
 
     for (const { fixture, matchId, input } of writes) {
       const result = fullTimeScore(fixture)
-      // Keep the real time of day, move the date into the recent past.
+      // A played round's real kickoff is already behind us, which is exactly what the lock wants
+      // — keep it, so the app shows the dates these matches were actually played on. The
+      // synthetic past slot is the fallback for a dataset whose results are not yet in the past.
       const original = sourceKickoff(fixture)
-      const kickoff = new Date(lockedAt)
-      kickoff.setUTCHours(original.getUTCHours(), original.getUTCMinutes(), 0, 0)
+      let kickoff = original
+      if (original.getTime() > now - HOUR_MS) {
+        kickoff = new Date(lockedAt)
+        kickoff.setUTCHours(original.getUTCHours(), original.getUTCMinutes(), 0, 0)
+      }
 
       const what = `finish ${fixture.team1} ${result.home}–${result.away} ${fixture.team2}`
       assertScored(
@@ -495,16 +509,23 @@ async function main() {
     console.log(`  ${round.name}: ${writes.length} match(es) played and scored`)
   }
 
-  // ── Upcoming matchdays, shifted into the future ─────────────────────────────────────────────
-  // The source season is already over, so these carry synthetic kickoffs. They exist so the app
-  // has something to forecast when you open it.
+  // ── Upcoming matchdays ──────────────────────────────────────────────────────────────────────
+  // A live season's next matchdays are genuinely ahead of now, and keeping their real kickoffs is
+  // most of the point of seeding the current season. Only a round that has already started — or a
+  // season that is over — needs shifting, and then the whole round moves together so its fixtures
+  // keep the spacing they really have.
   let upcomingIndex = 0
   for (const round of upcoming) {
     upcomingIndex++
-    for (const fixture of round.fixtures) {
-      const original = sourceKickoff(fixture)
-      const kickoff = new Date(now + (upcomingIndex + 1) * DAY_MS)
-      kickoff.setUTCHours(original.getUTCHours(), original.getUTCMinutes(), 0, 0)
+    const kickoffs = round.fixtures.map((f) => sourceKickoff(f).getTime())
+    const earliest = Math.min(...kickoffs)
+    // Whole days, so a 15:00 kickoff stays a 15:00 kickoff. Shifting by the raw difference would
+    // drag every fixture to whatever minute and second this script happened to run at.
+    const days = Math.ceil((now + (upcomingIndex + 1) * DAY_MS - earliest) / DAY_MS)
+    const shift = earliest <= now + HOUR_MS ? days * DAY_MS : 0
+
+    for (const [i, fixture] of round.fixtures.entries()) {
+      const kickoff = new Date(kickoffs[i] + shift)
 
       const what = `schedule ${fixture.team1} v ${fixture.team2}`
       assertScored(
