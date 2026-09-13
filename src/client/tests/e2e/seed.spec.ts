@@ -58,9 +58,16 @@ test("a league created through the UI survives a page reload", async ({ page }) 
   // is the pattern — never a sleep, and never relying on a step's implicit timeout to absorb it.
   const tournament = page.getByRole("combobox", { name: "Tournament" })
   await expect(tournament).toBeVisible()
-  // Selected by the tournament's id (the option's value), not by its visible label:
-  // the label is "<name> (<season>)" and would break the day the format changes.
-  await tournament.selectOption(fixture.tournament.id)
+  // This is a Radix Select, not a native <select>: a button that opens a listbox, so there is no
+  // selectOption to call. Open it and click the option — which is exactly what a member does.
+  await tournament.click()
+  // Matched on the tournament's NAME, and by substring (getByRole's default), not on the full
+  // visible label: the label is "<name> (<season>)" and an exact string would break the day that
+  // format changes. The name carries this run's unique id, so it can only match one option.
+  await page.getByRole("option", { name: fixture.tournament.name }).click()
+  // Wait for the state the click produces — the trigger now reporting the pick — rather than
+  // assuming the listbox has closed before the next step reaches for the submit button.
+  await expect(tournament).toContainText(fixture.tournament.name)
   // The scoring fieldset arrives with sensible parameters already ticked, so the
   // form is submittable as-is. Leaving it alone keeps this exemplar about the
   // patterns rather than about scoring configuration.
@@ -82,10 +89,15 @@ test("a league created through the UI survives a page reload", async ({ page }) 
   // path in this API that removes a league (LeaguesController.cs:288-291). That
   // makes this cycle fully reversible: the test leaves nothing behind.
   //
-  // The button asks for confirmation via window.confirm, and Playwright dismisses
-  // dialogs by default — so accept it explicitly, before the click that opens it.
-  page.once("dialog", (dialog) => void dialog.accept())
+  // The button asks for confirmation through a Radix AlertDialog — an in-page modal, not a
+  // window.confirm, so there is no dialog event to accept. Confirm the way a member does.
   await page.getByRole("button", { name: "Leave and delete league" }).click()
+  // Scoped to the modal and exact: the trigger behind it reads "Leave and delete league", and
+  // getByRole's name matching is a substring by default, so an unscoped "Leave and delete"
+  // would match both buttons and fail on strict mode.
+  const confirmation = page.getByRole("alertdialog")
+  await expect(confirmation).toBeVisible()
+  await confirmation.getByRole("button", { name: "Leave and delete", exact: true }).click()
 
   // Cleanup is asserted, not assumed: an unverified teardown quietly accumulates
   // data until a later run fails for reasons that have nothing to do with the test.

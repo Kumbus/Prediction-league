@@ -58,7 +58,7 @@ export function MatchImportPage() {
               type="file"
               accept=".csv"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control h-auto py-1.5"
             />
             <p className="text-xs text-muted-foreground">
               Headers: HomeTeam,AwayTeam,KickoffUtc,Status,HomeScore,AwayScore,Round.

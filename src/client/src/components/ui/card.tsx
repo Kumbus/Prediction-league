@@ -7,7 +7,9 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6",
+        // `surface` carries the elevation and the hover transition; add `surface-interactive`
+        // at the call site when the whole card is a target.
+        "surface bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-border py-6",
         className
       )}
       {...props}

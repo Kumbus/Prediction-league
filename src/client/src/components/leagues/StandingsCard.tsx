@@ -2,8 +2,11 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { StandingsResponse } from "@/leagues/types"
+import { cn, stagger } from "@/lib/utils"
+import { RankBadge } from "@/components/leagues/RankBadge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton, SkeletonBlock } from "@/components/ui/skeleton"
 
 // The league's table, led with on the league page (FR-012). Shows the leading rows and links to
 // the full standings; the whole table on the page would drown the invite/scoring/members cards it
@@ -54,7 +57,14 @@ export function StandingsCard({ leagueId }: StandingsCardProps) {
         )}
 
         {!error && !notFound && !standings && (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <SkeletonBlock className="gap-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-3">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-8" />
+              </div>
+            ))}
+          </SkeletonBlock>
         )}
 
         {standings && rows.length === 0 && (
@@ -71,19 +81,29 @@ export function StandingsCard({ leagueId }: StandingsCardProps) {
         )}
 
         {rows.length > 0 && (
-          <ul className="grid gap-2">
-            {rows.slice(0, TOP_ROWS).map((r) => (
-              <li key={r.userId} className="flex items-baseline justify-between gap-3 text-sm">
-                <span className={r.userId === standings?.callerUserId ? "font-medium" : ""}>
-                  <span className="text-muted-foreground tabular-nums">{r.rank}.</span>{" "}
-                  {r.displayName}
-                  {r.userId === standings?.callerUserId && (
-                    <span className="text-muted-foreground"> (you)</span>
+          <ul className="grid gap-1">
+            {rows.slice(0, TOP_ROWS).map((r, i) => {
+              const isCaller = r.userId === standings?.callerUserId
+              return (
+                <li
+                  key={r.userId}
+                  style={stagger(i)}
+                  className={cn(
+                    "rise-in flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm transition-colors",
+                    // The caller's own row is the one they look for first — it gets a tinted
+                    // band, not just a bolder weight.
+                    isCaller ? "bg-primary/10 font-medium ring-1 ring-primary/25" : "hover:bg-white/5",
                   )}
-                </span>
-                <span className="tabular-nums">{r.points}</span>
-              </li>
-            ))}
+                >
+                  <span className="flex items-center gap-2">
+                    <RankBadge rank={r.rank} />
+                    {r.displayName}
+                    {isCaller && <span className="text-muted-foreground"> (you)</span>}
+                  </span>
+                  <span className="tabular-nums">{r.points}</span>
+                </li>
+              )
+            })}
           </ul>
         )}
 

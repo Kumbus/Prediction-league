@@ -12,12 +12,15 @@
   --green-light: #4ade80;
   --gold: #f59e0b;
   --gold-light: #fbbf24;
+  --mint: #a7f3d0;
 
   --radius: 0.625rem;
 
   /* shadcn semantic tokens mapped onto the palette */
   --background: var(--green-dark);
-  --foreground: #a7f3d0;
+  /* Near-white with a green cast, not the mint accent: mint as default body text is
+     low-contrast at paragraph length. Mint stays available as --color-mint for accents. */
+  --foreground: #e6f2ea;
 
   --card: var(--green-mid);
   --card-foreground: #ffffff;
@@ -31,17 +34,30 @@
   --secondary: var(--green-field);
   --secondary-foreground: #ffffff;
 
-  --muted: var(--green-mid);
-  --muted-foreground: #4b7c5e;
+  /* One step below --card so muted surfaces (tab strips, wells) recede instead of
+     disappearing into the card they sit on. */
+  --muted: #0e2b1e;
+  /* 4.95:1 against --card, 7.4:1 against --background — the old #4b7c5e was 2.7:1 and
+     failed WCAG AA everywhere it was used for real text. */
+  --muted-foreground: #86a894;
 
   --accent: var(--gold);
   --accent-foreground: var(--green-dark);
 
   --destructive: #ef4444;
 
-  --border: rgba(34, 197, 94, 0.15);
-  --input: rgba(34, 197, 94, 0.2);
+  --border: rgba(34, 197, 94, 0.18);
+  --border-strong: rgba(34, 197, 94, 0.38);
+  --input: rgba(34, 197, 94, 0.22);
   --ring: var(--green-bright);
+
+  /* Elevation: a lit top edge plus a dark drop, so stacked surfaces separate without
+     needing more background colours. */
+  --elev-1: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-2:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 8px 24px -8px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  --glow-primary: 0 0 24px rgba(34, 197, 94, 0.28);
 }
 
 @theme inline {
@@ -72,6 +88,14 @@
   --color-green-light: var(--green-light);
   --color-gold: var(--gold);
   --color-gold-light: var(--gold-light);
+  --color-mint: var(--mint);
+  --color-border-strong: var(--border-strong);
+
+  --shadow-elev-1: var(--elev-1);
+  --shadow-elev-2: var(--elev-2);
+
+  --animate-page-in: page-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-rise-in: rise-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -104,7 +128,9 @@
 
   h1 {
     font-size: clamp(2.5rem, 6vw, 4.5rem);
-    letter-spacing: -2px;
+    /* Relative, not -2px: the app screens render h1 at text-2xl, and a fixed -2px that reads
+       as tight display type at 4.5rem crushes the words together at 1.5rem. */
+    letter-spacing: -0.022em;
   }
 
   h2 {
@@ -119,5 +145,133 @@
 
   #root {
     min-height: 100svh;
+  }
+
+  /* Native selects are used wherever the option list is data-driven (scorers, tournaments,
+     players) — Radix Select would change their role and break `selectOption` in the E2E
+     suite. Style them to match Input instead of swapping the control. */
+  select:not([multiple]):not([size]) {
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+      linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+    background-position: right 1rem center, right 0.7rem center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2rem;
+  }
+
+  select option,
+  select optgroup {
+    background: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  ::selection {
+    background: rgba(34, 197, 94, 0.3);
+    color: #ffffff;
+  }
+
+  * {
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@layer components {
+  /* Every surface that should read as raised. Card uses it; bespoke panels can opt in. */
+  .surface {
+    box-shadow: var(--elev-1);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  /* A card the whole of which is a target (a league in the list, a match row). */
+  .surface-interactive:hover {
+    box-shadow: var(--elev-2);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+
+  /* Route-level entrance. Keyed on the pathname so it replays on every navigation. */
+  .page-in {
+    animation: var(--animate-page-in);
+  }
+
+  /* Children rise in sequence; --i is the index set inline by the list that renders them. */
+  .rise-in {
+    animation: var(--animate-rise-in);
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+
+  /* Bare <select>/<input> elements dressed to match the <Input> primitive. One class rather
+     than a utility string repeated in eight files, so the controls cannot drift apart again. */
+  .field-control {
+    @apply h-9 min-w-0 rounded-md border border-input bg-background px-3 text-sm
+      transition-[color,box-shadow,border-color] outline-none
+      focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .skeleton {
+    border-radius: var(--radius-md);
+    background: linear-gradient(
+      90deg,
+      rgba(34, 197, 94, 0.07) 25%,
+      rgba(34, 197, 94, 0.16) 37%,
+      rgba(34, 197, 94, 0.07) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-sweep 1.4s ease infinite;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes skeleton-sweep {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+/* Motion is decoration here — every animated state is also readable without it. Note this
+   also keeps Playwright from racing a transition: with the flag set nothing moves. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .surface-interactive:hover {
+    transform: none;
   }
 }
