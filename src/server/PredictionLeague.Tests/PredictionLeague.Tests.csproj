@@ -15,6 +15,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PredictionLeague.Domain\PredictionLeague.Domain.csproj" />
+    <!-- Application arrives transitively through Infrastructure; referenced explicitly because
+         these tests target it directly, and a transitive reference is not a contract. -->
+    <ProjectReference Include="..\PredictionLeague.Application\PredictionLeague.Application.csproj" />
     <ProjectReference Include="..\PredictionLeague.Infrastructure\PredictionLeague.Infrastructure.csproj" />
   </ItemGroup>
 

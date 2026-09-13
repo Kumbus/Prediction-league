@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PredictionLeague.Application.Abstractions.Persistence;
 using PredictionLeague.Application.Abstractions.Predictions;
+using PredictionLeague.Application.Predictions;
 using PredictionLeague.Domain.Entities;
 
 namespace PredictionLeague.Api.Controllers;
@@ -25,8 +26,8 @@ namespace PredictionLeague.Api.Controllers;
 [Authorize]
 public class PredictionsController : ControllerBase
 {
-    private const int MaxScore = 99;
-    private const int MaxCards = 99;
+    // Score and card bounds live with the rule that enforces them, in
+    // PredictionLeague.Application.Predictions.PredictionItemValidator.
 
     private static readonly IReadOnlyDictionary<Guid, IReadOnlyList<EligibleScorerDto>> NoCandidates =
         new Dictionary<Guid, IReadOnlyList<EligibleScorerDto>>();
@@ -102,10 +103,13 @@ public class PredictionsController : ControllerBase
         IReadOnlyList<ScoringParameter> ScoredParameters,
         IReadOnlyList<MatchPredictionRowResponse> Matches);
 
+    // Nullable scores are load-bearing, not lenient: a non-nullable int cannot tell an ABSENT
+    // field from a zero. See PredictionItemInput, whose shape this mirrors and whose validator
+    // refuses the absent case.
     public record PredictionItemRequest(
         Guid MatchId,
-        int HomeScore,
-        int AwayScore,
+        int? HomeScore,
+        int? AwayScore,
         Guid? FirstScorerPlayerId,
         Guid? FirstScorerTeamId,
         int? TotalCards,
@@ -227,10 +231,13 @@ public class PredictionsController : ControllerBase
                 continue;
             }
 
-            var invalid = ValidateItem(item, match, scored, CandidatesFor(candidates, match));
-            if (invalid is not null)
+            // Content validation runs after the lock, so a closed match still reports Locked —
+            // the more useful thing to tell a member about that row than what it was missing.
+            var verdict = PredictionItemValidator.Validate(
+                ToInput(item), match, scored, CandidatesFor(candidates, match));
+            if (!verdict.IsValid)
             {
-                outcomes.Add(new PredictionOutcomeResponse(item.MatchId, PredictionItemStatus.Invalid, invalid));
+                outcomes.Add(new PredictionOutcomeResponse(item.MatchId, PredictionItemStatus.Invalid, verdict.Error));
                 continue;
             }
 
@@ -240,8 +247,10 @@ public class PredictionsController : ControllerBase
                 LeagueId = league.Id,
                 UserId = userId,
                 MatchId = item.MatchId,
-                PredictedHomeScore = item.HomeScore,
-                PredictedAwayScore = item.AwayScore,
+                // From the verdict, not the request: the validator is what proved the two
+                // nullables present, and these are the values it accepted.
+                PredictedHomeScore = verdict.HomeScore,
+                PredictedAwayScore = verdict.AwayScore,
                 PredictedFirstScorerPlayerId = item.FirstScorerPlayerId,
                 PredictedFirstScorerTeamId = item.FirstScorerTeamId,
                 PredictedTotalCards = item.TotalCards,
@@ -477,62 +486,19 @@ public class PredictionsController : ControllerBase
         return [.. home, .. away.Where(s => !onHome.Contains(s.PlayerId))];
     }
 
-    // Rules-driven field validation. A field is accepted only if the league scores the matching
-    // parameter, and required on exactly the same condition — silently dropping an unscored field
-    // would let a member believe they had forecast something the league will never award.
-    private static string? ValidateItem(
-        PredictionItemRequest item,
-        MatchRoundDto match,
-        HashSet<ScoringParameter> scored,
-        IReadOnlyList<EligibleScorerDto> eligible)
-    {
-        if (item.HomeScore < 0 || item.HomeScore > MaxScore || item.AwayScore < 0 || item.AwayScore > MaxScore)
-            return $"Scores must be between 0 and {MaxScore}.";
-
-        var cardError =
-            ValidateCard(ScoringParameter.CorrectCardCount, item.TotalCards, "Total cards", scored)
-            ?? ValidateCard(ScoringParameter.CorrectYellowCards, item.YellowCards, "Yellow cards", scored)
-            ?? ValidateCard(ScoringParameter.CorrectRedCards, item.RedCards, "Red cards", scored);
-        if (cardError is not null) return cardError;
-
-        if (!scored.Contains(ScoringParameter.CorrectGoalScorer))
-            return item.FirstScorerPlayerId is not null || item.FirstScorerTeamId is not null
-                ? "This league does not score the first goal scorer."
-                : null;
-
-        // Optional even where the league scores it: a member who leaves the scorer blank simply
-        // cannot earn those points. Requiring it would also dead-end every league whose teams have
-        // no linked players — the candidate list would be empty with no way to satisfy the rule.
-        if (item.FirstScorerPlayerId is null && item.FirstScorerTeamId is null)
-            return null;
-
-        // Half a pair is not a forecast, though: a player with no credited team cannot be scored,
-        // and a credited team with no player says nothing.
-        if (item.FirstScorerPlayerId is null || item.FirstScorerTeamId is null)
-            return "Pick both a first scorer and the team the goal is credited to.";
-
-        if (item.FirstScorerTeamId != match.HomeTeam.Id && item.FirstScorerTeamId != match.AwayTeam.Id)
-            return "The credited team must be one of the two teams playing.";
-
-        if (eligible.All(s => s.PlayerId != item.FirstScorerPlayerId))
-            return "That player is not in either team's squad for this match.";
-
-        // Deliberately not required to agree: a player from one team credited to the other is an
-        // own-goal forecast, which is exactly the shape MatchEvent records.
-        return null;
-    }
-
-    // A field the league does not score is refused outright rather than dropped — a member must not
-    // believe they forecast something the league will never award. A field it *does* score is
-    // optional, on the same footing as the first scorer: leaving it blank forfeits those points and
-    // nothing else, so an unfilled row still saves its scores.
-    private static string? ValidateCard(ScoringParameter parameter, int? value, string label, HashSet<ScoringParameter> scored)
-    {
-        if (!scored.Contains(parameter))
-            return value is null ? null : $"This league does not score {label.ToLowerInvariant()}.";
-        if (value is null) return null;
-        return value < 0 || value > MaxCards ? $"{label} must be between 0 and {MaxCards}." : null;
-    }
+    // The wire shape mapped onto the Application layer's input. A copy rather than binding the
+    // request straight into PredictionItemInput: the HTTP contract belongs to this controller and
+    // stays free to move without the rule following it inward.
+    private static PredictionItemInput ToInput(PredictionItemRequest item)
+        => new(
+            item.MatchId,
+            item.HomeScore,
+            item.AwayScore,
+            item.FirstScorerPlayerId,
+            item.FirstScorerTeamId,
+            item.TotalCards,
+            item.YellowCards,
+            item.RedCards);
 
     // Identity user keys are Guids (F-01), so the NameIdentifier claim parses directly.
     private Guid? CurrentUserId()
