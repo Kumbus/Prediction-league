@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Create a league: name + tournament + the parameters it scores, in one submit (S-03, S-04).
 // The scoring inputs come from the shared fieldset, so a new parameter needs no new markup here.
@@ -52,6 +53,10 @@ export function LeagueFormPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (tournamentId === "") {
+      setError("Pick a tournament.")
+      return
+    }
     if (scoringRules.length === 0) {
       setError("Pick at least one scoring parameter.")
       return
@@ -100,18 +105,18 @@ export function LeagueFormPage() {
                   league.
                 </p>
               ) : (
-                <select
-                  id="tournament"
-                  className="rounded border border-input bg-background px-3 py-2"
-                  value={tournamentId}
-                  onChange={(e) => setTournamentId(e.target.value)}
-                  required
-                >
-                  <option value="">— pick —</option>
-                  {tournaments.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name} ({t.season})</option>
-                  ))}
-                </select>
+                <Select value={tournamentId} onValueChange={setTournamentId} disabled={busy}>
+                  <SelectTrigger id="tournament">
+                    <SelectValue placeholder="— pick a tournament —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tournaments.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} ({t.season})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
               {tournamentStarted && (
                 <p className="text-sm text-muted-foreground">

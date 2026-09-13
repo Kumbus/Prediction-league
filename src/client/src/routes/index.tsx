@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom"
+import { createBrowserRouter, Navigate } from "react-router-dom"
 import { AppShell } from "./AppShell"
 import { LandingPage } from "./LandingPage"
 import { RequireAdmin } from "./RequireAdmin"
@@ -25,17 +25,24 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { path: "/app", element: <AppShell /> },
-      { path: "/app/leagues", element: <LeaguesListPage /> },
-      { path: "/app/leagues/new", element: <LeagueFormPage /> },
-      // The bare form is typed in by hand; the :code form is what an invite link points at and
-      // prefills. Route ranking puts the static "join" segment ahead of :id, so the two cannot
-      // collide.
-      { path: "/app/leagues/join", element: <JoinLeaguePage /> },
-      { path: "/app/leagues/join/:code", element: <JoinLeaguePage /> },
-      { path: "/app/leagues/:id", element: <LeagueDetailPage /> },
-      { path: "/app/leagues/:id/predictions", element: <PredictionsPage /> },
-      { path: "/app/leagues/:id/standings", element: <StandingsPage /> },
+      {
+        element: <AppShell />,
+        children: [
+          // "/app" itself is not a screen — it redirects straight to the leagues list rather
+          // than showing an interstitial "you're signed in" page.
+          { path: "/app", element: <Navigate to="/app/leagues" replace /> },
+          { path: "/app/leagues", element: <LeaguesListPage /> },
+          { path: "/app/leagues/new", element: <LeagueFormPage /> },
+          // The bare form is typed in by hand; the :code form is what an invite link points at
+          // and prefills. Route ranking puts the static "join" segment ahead of :id, so the two
+          // cannot collide.
+          { path: "/app/leagues/join", element: <JoinLeaguePage /> },
+          { path: "/app/leagues/join/:code", element: <JoinLeaguePage /> },
+          { path: "/app/leagues/:id", element: <LeagueDetailPage /> },
+          { path: "/app/leagues/:id/predictions", element: <PredictionsPage /> },
+          { path: "/app/leagues/:id/standings", element: <StandingsPage /> },
+        ],
+      },
     ],
   },
   {

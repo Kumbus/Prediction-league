@@ -3,6 +3,17 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/auth/useAuth"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { LeagueDetailResponse } from "@/leagues/types"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,13 +53,6 @@ export function MembersCard({ league, onLeagueChange }: MembersCardProps) {
         : fallback
 
   const leave = async () => {
-    const question =
-      league.isOrganizer
-        ? `Leave and delete "${league.name}"? You are its only member, so the league and its ` +
-          "scoring rules are removed for good."
-        : `Leave "${league.name}"? You'll need the invite code to rejoin.`
-    if (!window.confirm(question)) return
-
     setBusy(true)
     setError(null)
     try {
@@ -60,23 +64,16 @@ export function MembersCard({ league, onLeagueChange }: MembersCardProps) {
     }
   }
 
-  const transfer = async () => {
-    const target = league.members.find((m) => m.userId === transferTo)
-    if (!target) return
-    if (
-      !window.confirm(
-        `Make ${target.displayName} the organizer of "${league.name}"? You stay a member, but you ` +
-          "will no longer be able to change its scoring rules.",
-      )
-    )
-      return
+  const transferTarget = league.members.find((m) => m.userId === transferTo)
 
+  const transfer = async () => {
+    if (!transferTarget) return
     setBusy(true)
     setError(null)
     try {
       const updated = await apiFetch<LeagueDetailResponse>(
         `/api/leagues/${league.id}/organizer`,
-        { method: "PUT", body: { userId: target.userId } },
+        { method: "PUT", body: { userId: transferTarget.userId } },
       )
       onLeagueChange(updated)
       setTransferTo("")
@@ -127,28 +124,70 @@ export function MembersCard({ league, onLeagueChange }: MembersCardProps) {
                   <option key={m.userId} value={m.userId}>{m.displayName}</option>
                 ))}
               </select>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || transferTo === ""}
-                onClick={() => void transfer()}
-              >
-                {busy ? "Working…" : "Transfer"}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={busy || transferTo === ""}>
+                    {busy ? "Working…" : "Transfer"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Hand over the league?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Make {transferTarget?.displayName} the organizer of "{league.name}"? You
+                      stay a member, but you will no longer be able to change its scoring rules.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void transfer()}>
+                      Make organizer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         )}
 
         <div className="border-t border-border pt-4">
           {canLeave ? (
-            <Button
-              variant={isSoleMember && league.isOrganizer ? "destructive" : "outline"}
-              size="sm"
-              disabled={busy}
-              onClick={() => void leave()}
-            >
-              {isSoleMember && league.isOrganizer ? "Leave and delete league" : "Leave league"}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant={isSoleMember && league.isOrganizer ? "destructive" : "outline"}
+                  size="sm"
+                  disabled={busy}
+                >
+                  {isSoleMember && league.isOrganizer ? "Leave and delete league" : "Leave league"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {isSoleMember && league.isOrganizer ? "Leave and delete this league?" : "Leave this league?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {isSoleMember && league.isOrganizer
+                      ? `You are its only member, so "${league.name}" and its scoring rules are removed for good.`
+                      : `You'll need the invite code to rejoin "${league.name}".`}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={
+                      isSoleMember && league.isOrganizer
+                        ? "bg-destructive text-white hover:bg-destructive/90"
+                        : undefined
+                    }
+                    onClick={() => void leave()}
+                  >
+                    {isSoleMember && league.isOrganizer ? "Leave and delete" : "Leave league"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           ) : (
             <p className="text-sm text-muted-foreground">
               You organize this league, so you have to hand it to another member before you can
