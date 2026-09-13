@@ -112,7 +112,7 @@ export function PlayerFormPage() {
                 <Label htmlFor="nat">Nationality</Label>
                 <select
                   id="nat"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={nationalityId ?? ""}
                   onChange={(e) => setNationalityId(e.target.value ? Number(e.target.value) : null)}
                 >
@@ -126,7 +126,7 @@ export function PlayerFormPage() {
                 <Label htmlFor="pos">Position</Label>
                 <select
                   id="pos"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={position}
                   onChange={(e) => setPosition(e.target.value as PlayerPosition)}
                 >
@@ -153,7 +153,7 @@ export function PlayerFormPage() {
                 <Label htmlFor="club">Club team</Label>
                 <select
                   id="club"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={clubTeamId}
                   onChange={(e) => setClubTeamId(e.target.value)}
                 >
@@ -165,7 +165,7 @@ export function PlayerFormPage() {
                 <Label htmlFor="natTeam">National team</Label>
                 <select
                   id="natTeam"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={nationalTeamId}
                   onChange={(e) => setNationalTeamId(e.target.value)}
                 >

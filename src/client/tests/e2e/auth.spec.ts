@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test"
 
 const API_ORIGIN = "https://localhost:7182"
 
-test("register → /app → sign out → cookie cleared", async ({ page }) => {
+// RegisterForm navigates to "/app", which is not a screen — the router redirects it straight to
+// the leagues list (routes/index.tsx). So the URL that proves a registered member is inside the
+// app is /app/leagues; /app never survives long enough to be asserted on.
+test("register → /app/leagues → sign out → cookie cleared", async ({ page }) => {
   const unique = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const email = `${unique}@example.test`
   const password = "Password123!"
@@ -15,7 +18,7 @@ test("register → /app → sign out → cookie cleared", async ({ page }) => {
   await page.getByLabel("Password").fill(password)
   await page.getByRole("button", { name: /create account/i }).click()
 
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL(/\/app\/leagues$/)
   await expect(page.getByText(displayName)).toBeVisible()
 
   await page.getByRole("button", { name: /sign out/i }).click()
@@ -48,7 +51,7 @@ test("sign out with the logout request blocked → the UI says the session may s
   await page.getByLabel("Password").fill(password)
   await page.getByRole("button", { name: /create account/i }).click()
 
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL(/\/app\/leagues$/)
 
   // The failure under test: the request never lands. Registered after sign-in so only the
   // sign-out call is affected.

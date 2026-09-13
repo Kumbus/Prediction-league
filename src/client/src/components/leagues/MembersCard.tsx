@@ -114,7 +114,7 @@ export function MembersCard({ league, onLeagueChange }: MembersCardProps) {
             <div className="flex flex-wrap items-center gap-2">
               <select
                 id="transferTo"
-                className="rounded border border-input bg-background px-3 py-2 text-sm"
+                className="field-control text-sm"
                 value={transferTo}
                 onChange={(e) => setTransferTo(e.target.value)}
                 disabled={busy}

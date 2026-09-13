@@ -150,7 +150,7 @@ export function MatchEventsFieldset({
             <Label htmlFor={`type-${row.key}`}>Type</Label>
             <select
               id={`type-${row.key}`}
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control"
               value={row.matchEventTypeId}
               onChange={(e) => setField(row.key, "matchEventTypeId", e.target.value)}
             >
@@ -163,7 +163,7 @@ export function MatchEventsFieldset({
             <Label htmlFor={`player-${row.key}`}>Player</Label>
             <select
               id={`player-${row.key}`}
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control"
               value={row.playerId}
               onChange={(e) => setField(row.key, "playerId", e.target.value)}
             >
@@ -178,7 +178,7 @@ export function MatchEventsFieldset({
             <Label htmlFor={`team-${row.key}`}>Credited to</Label>
             <select
               id={`team-${row.key}`}
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control"
               value={row.teamId}
               onChange={(e) => setField(row.key, "teamId", e.target.value)}
             >

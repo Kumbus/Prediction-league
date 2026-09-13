@@ -142,7 +142,7 @@ export function MatchFormPage() {
                 <Label htmlFor="home">Home team</Label>
                 <select
                   id="home"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={homeTeamId}
                   onChange={(e) => setHomeTeamId(e.target.value)}
                   required
@@ -155,7 +155,7 @@ export function MatchFormPage() {
                 <Label htmlFor="away">Away team</Label>
                 <select
                   id="away"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={awayTeamId}
                   onChange={(e) => setAwayTeamId(e.target.value)}
                   required
@@ -191,7 +191,7 @@ export function MatchFormPage() {
                 <Label htmlFor="status">Status</Label>
                 <select
                   id="status"
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={status}
                   onChange={(e) => setStatus(e.target.value as MatchStatus)}
                 >

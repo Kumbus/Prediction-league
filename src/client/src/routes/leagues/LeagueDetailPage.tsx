@@ -2,12 +2,14 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { LeagueDetailResponse } from "@/leagues/types"
+import { stagger } from "@/lib/utils"
 import { MembersCard } from "@/components/leagues/MembersCard"
 import { ScoringCard } from "@/components/leagues/ScoringCard"
 import { StandingsCard } from "@/components/leagues/StandingsCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton, SkeletonBlock } from "@/components/ui/skeleton"
 
 // One league: what it is bound to, the invite code and link to share (FR-007), the scoring config,
 // and the roster. The page is a composition of cards that own their own interactions — Scoring
@@ -53,7 +55,26 @@ export function LeagueDetailPage() {
     }
   }
 
-  if (loading) return <div className="p-6">Loading…</div>
+  if (loading) {
+    return (
+      <div className="grid gap-4 p-6">
+        <Skeleton className="h-8 w-64 max-w-full" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i} className="rise-in" style={stagger(i)}>
+              <CardContent>
+                <SkeletonBlock className="gap-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/5" />
+                </SkeletonBlock>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   if (notFound) {
     return (
@@ -81,10 +102,10 @@ export function LeagueDetailPage() {
   }
 
   return (
-    <div className="grid gap-4 p-6">
-      <div className="flex items-center justify-between">
+    <div className="grid gap-6 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{league.name}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={league.isOrganizer ? "default" : "secondary"}>
             {league.isOrganizer ? "Organizer" : "Member"}
           </Badge>
@@ -104,7 +125,7 @@ export function LeagueDetailPage() {
           <CardHeader><CardTitle>Invite code</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <code className="rounded border border-input bg-background px-3 py-2 text-lg tracking-widest">
+              <code className="rounded-lg border border-border-strong bg-background px-4 py-2 font-mono text-lg font-semibold tracking-[0.25em] text-green-light">
                 {league.inviteCode}
               </code>
               <Button

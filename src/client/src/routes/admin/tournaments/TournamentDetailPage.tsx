@@ -129,7 +129,7 @@ export function TournamentDetailPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="rounded border border-input bg-background px-3 py-2"
+                className="field-control"
               />
             </div>
             <Button onClick={() => void ingest()} disabled={busy || !tournament.externalApiId}>

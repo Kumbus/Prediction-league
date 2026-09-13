@@ -13,9 +13,11 @@ import type {
 import { useAuth } from "@/auth/useAuth"
 import type { PredictionDraft } from "@/leagues/drafts"
 import { draftFromRow, sameDraft } from "@/leagues/drafts"
+import { stagger } from "@/lib/utils"
 import { MatchPredictionRow } from "@/components/leagues/MatchPredictionRow"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton, SkeletonBlock } from "@/components/ui/skeleton"
 
 // Fill one round of forecasts and save it in a single write (S-06, FR-009). The screen holds no
 // lock logic of its own: it renders the server's canPredict per match, and after a save it
@@ -202,7 +204,25 @@ export function PredictionsPage() {
     }
   }
 
-  if (loading && !view) return <div className="p-6">Loading…</div>
+  if (loading && !view) {
+    return (
+      <div className="grid gap-4 p-6">
+        <Skeleton className="h-8 w-80 max-w-full" />
+        <Card>
+          <CardContent>
+            <SkeletonBlock>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="grid gap-2 rounded-xl border border-border p-4">
+                  <Skeleton className="h-5 w-56 max-w-full" />
+                  <Skeleton className="h-9 w-40" />
+                </div>
+              ))}
+            </SkeletonBlock>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (notFound) {
     return (
@@ -261,7 +281,9 @@ export function PredictionsPage() {
       {error && <div role="alert" className="text-sm text-destructive">{error}</div>}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        {/* Sticky under the 4rem app header: a round can run to a dozen matches, and Save has
+            to stay reachable from the bottom of the list without scrolling back up. */}
+        <CardHeader className="sticky top-16 z-10 -mt-6 flex flex-row items-center justify-between space-y-0 rounded-t-xl border-b border-border bg-card/95 py-4 backdrop-blur">
           <CardTitle>{view.round ?? "No rounds yet"}</CardTitle>
           {openMatches > 0 && (
             <Button size="sm" disabled={saving || loading} onClick={() => void save()}>
@@ -275,9 +297,11 @@ export function PredictionsPage() {
               This tournament has no matches yet.
             </p>
           ) : (
-            view.matches.map((m) => (
+            view.matches.map((m, i) => (
               <div
                 key={m.matchId}
+                className="rise-in"
+                style={stagger(i)}
                 ref={(el) => {
                   rowRefs.current[m.matchId] = el
                 }}

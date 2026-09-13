@@ -74,7 +74,7 @@ export function PlayerImportPage() {
               type="file"
               accept=".csv"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control h-auto py-1.5"
             />
             <p className="text-xs text-muted-foreground">
               Headers: Name,NationalityCode,Position,DateOfBirth,HeightCm,ExternalPlayerId,ClubTeam,NationalTeam.
@@ -87,7 +87,7 @@ export function PlayerImportPage() {
             <Label htmlFor="t">Bind to tournament (optional)</Label>
             <select
               id="t"
-              className="rounded border border-input bg-background px-3 py-2"
+              className="field-control"
               value={tournamentId}
               onChange={(e) => setTournamentId(e.target.value)}
             >

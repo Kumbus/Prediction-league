@@ -2,8 +2,11 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ApiError, apiFetch } from "@/lib/api"
 import type { StandingsResponse } from "@/leagues/types"
+import { cn } from "@/lib/utils"
+import { RankBadge } from "@/components/leagues/RankBadge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton, SkeletonBlock } from "@/components/ui/skeleton"
 
 // The full table on its own screen (FR-012). Same data as the league page's card, with room for
 // every row and the per-member detail the card leaves out.
@@ -31,7 +34,25 @@ export function StandingsPage() {
     })()
   }, [id])
 
-  if (loading) return <div className="p-6">Loading…</div>
+  if (loading) {
+    return (
+      <div className="grid gap-4 p-6">
+        <Skeleton className="h-8 w-72 max-w-full" />
+        <Card>
+          <CardContent>
+            <SkeletonBlock className="gap-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+              ))}
+            </SkeletonBlock>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (notFound) {
     return (
@@ -103,13 +124,17 @@ export function StandingsPage() {
                   {rows.map((r) => (
                     <tr
                       key={r.userId}
-                      className={
+                      className={cn(
+                        "border-b border-border transition-colors last:border-b-0",
+                        "[&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg",
                         r.userId === standings.callerUserId
-                          ? "border-b border-border font-medium"
-                          : "border-b border-border"
-                      }
+                          ? "bg-primary/10 font-medium"
+                          : "hover:bg-white/5",
+                      )}
                     >
-                      <td className="py-2 pr-3 tabular-nums">{r.rank}</td>
+                      <td className="py-2 pr-3 tabular-nums">
+                        <RankBadge rank={r.rank} />
+                      </td>
                       <td className="py-2 pr-3">
                         {r.displayName}
                         {r.userId === standings.callerUserId && (

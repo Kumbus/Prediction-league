@@ -5,6 +5,7 @@ import type {
   ScoringParameter,
 } from "@/leagues/types"
 import type { PredictionDraft } from "@/leagues/drafts"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -52,10 +53,21 @@ export function MatchPredictionRow({
   const awayScorers = scorers.filter((s) => s.teamId === row.awayTeamId)
 
   return (
-    <div className="grid gap-3 rounded border border-border p-4">
+    <div
+      className={cn(
+        "surface grid gap-3 rounded-xl border border-border p-4",
+        // A locked match is history, not an input: it sits back on the darker surface while a
+        // row still open for a forecast is marked with a lit left edge — the one thing on the
+        // screen the reader can still act on.
+        row.canPredict
+          ? "border-l-2 border-l-primary bg-card/70 hover:border-border-strong hover:border-l-primary"
+          : "bg-muted/50",
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="font-medium">
-          {row.homeTeamName} <span className="text-muted-foreground">v</span> {row.awayTeamName}
+        <div className="text-base font-semibold text-white">
+          {row.homeTeamName} <span className="font-normal text-muted-foreground">v</span>{" "}
+          {row.awayTeamName}
         </div>
         <div className="flex items-center gap-2">
           {row.status !== "Scheduled" && (
@@ -73,11 +85,14 @@ export function MatchPredictionRow({
       {outcome && (
         <div
           role="status"
-          className={
+          // Text content stays exactly the verdict — the E2E suite asserts on it with
+          // toHaveText, so nothing decorative may join it inside this element.
+          className={cn(
+            "w-fit rounded-md border px-2 py-1 text-sm",
             outcome.status === "Saved"
-              ? "text-sm text-muted-foreground"
-              : "text-sm text-destructive"
-          }
+              ? "border-primary/30 bg-primary/10 text-green-light"
+              : "border-destructive/40 bg-destructive/10 text-destructive",
+          )}
         >
           {/* The server's own reason, not a generic failure — a rejected row has to say why. */}
           {OUTCOME_TEXT[outcome.status]}
@@ -154,7 +169,7 @@ export function MatchPredictionRow({
                 <Label htmlFor={`credited-${row.matchId}`}>Goal credited to</Label>
                 <select
                   id={`credited-${row.matchId}`}
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={draft.firstScorerTeamId}
                   disabled={disabled}
                   onChange={(e) =>
@@ -174,7 +189,7 @@ export function MatchPredictionRow({
                 <Label htmlFor={`scorer-${row.matchId}`}>First scorer</Label>
                 <select
                   id={`scorer-${row.matchId}`}
-                  className="rounded border border-input bg-background px-3 py-2"
+                  className="field-control"
                   value={draft.firstScorerPlayerId}
                   disabled={disabled}
                   onChange={(e) =>
