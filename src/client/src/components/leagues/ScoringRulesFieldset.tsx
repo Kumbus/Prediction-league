@@ -1,5 +1,7 @@
+import { Minus, Plus } from "lucide-react"
 import type { ScoringParameter, ScoringRuleDto } from "@/leagues/types"
 import { MAX_RULE_POINTS, MIN_RULE_POINTS, SCORING_DEFAULTS } from "@/leagues/types"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -60,27 +62,56 @@ export function ScoringRulesFieldset({ value, onChange, disabled }: ScoringRules
                 />
                 <Label htmlFor={`scoring-active-${d.parameter}`}>{d.label}</Label>
               </div>
-              <Input
-                id={`scoring-points-${d.parameter}`}
-                type="number"
-                min={MIN_RULE_POINTS}
-                max={MAX_RULE_POINTS}
-                aria-label={`${d.label} points`}
-                // A disabled input is skipped by native validation, so an inactive parameter
-                // can never block the submit it is not part of.
-                disabled={!isActive}
-                required={isActive}
-                // 0 is not a legal points value, so it stands in for "cleared" — render it as
-                // an empty field rather than snapping a 0 under the organizer's cursor. Either
-                // way `required` + min block the submit.
-                value={(active.get(d.parameter) ?? d.points) || ""}
-                onChange={(e) =>
-                  setPoints(
-                    d.parameter,
-                    Number.isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
-                  )
-                }
-              />
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 shrink-0"
+                  aria-label={`Decrease ${d.label} points`}
+                  disabled={!isActive || (active.get(d.parameter) ?? d.points) <= MIN_RULE_POINTS}
+                  onClick={() =>
+                    setPoints(d.parameter, Math.max(MIN_RULE_POINTS, (active.get(d.parameter) ?? d.points) - 1))
+                  }
+                >
+                  <Minus />
+                </Button>
+                <Input
+                  id={`scoring-points-${d.parameter}`}
+                  type="number"
+                  min={MIN_RULE_POINTS}
+                  max={MAX_RULE_POINTS}
+                  aria-label={`${d.label} points`}
+                  className="text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  // A disabled input is skipped by native validation, so an inactive parameter
+                  // can never block the submit it is not part of.
+                  disabled={!isActive}
+                  required={isActive}
+                  // 0 is not a legal points value, so it stands in for "cleared" — render it as
+                  // an empty field rather than snapping a 0 under the organizer's cursor. Either
+                  // way `required` + min block the submit.
+                  value={(active.get(d.parameter) ?? d.points) || ""}
+                  onChange={(e) =>
+                    setPoints(
+                      d.parameter,
+                      Number.isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 shrink-0"
+                  aria-label={`Increase ${d.label} points`}
+                  disabled={!isActive || (active.get(d.parameter) ?? d.points) >= MAX_RULE_POINTS}
+                  onClick={() =>
+                    setPoints(d.parameter, Math.min(MAX_RULE_POINTS, (active.get(d.parameter) ?? d.points) + 1))
+                  }
+                >
+                  <Plus />
+                </Button>
+              </div>
             </div>
           )
         })}

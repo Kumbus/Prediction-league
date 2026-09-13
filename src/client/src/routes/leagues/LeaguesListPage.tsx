@@ -31,7 +31,6 @@ export function LeaguesListPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My leagues</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/app")}>Back</Button>
           <Button variant="outline" onClick={() => navigate("/app/leagues/join")}>Join a league</Button>
           <Button onClick={() => navigate("/app/leagues/new")}>New league</Button>
         </div>
