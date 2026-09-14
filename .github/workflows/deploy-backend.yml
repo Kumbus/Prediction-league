@@ -25,15 +25,28 @@ concurrency:
   group: deploy-backend-main
   cancel-in-progress: false
 
+# id-token: write lets the migrate job's azure/login exchange the GitHub OIDC token for an
+# Entra token (federated credential on app registration gh-prediction-league-sql in the SQL
+# tenant, subject repo:Kumbus/Prediction-league:ref:refs/heads/main). The app deploys use
+# publish profiles instead — see deploy-api.
+permissions:
+  id-token: write
+  contents: read
+
+# Apps live in subscription "Microsoft Azure Sponsorship", RG rg-dev-jwrona (moved 2026-09
+# after the Visual Studio subscription was disabled). The SQL server lives in a separate,
+# personally owned subscription (AZURE_SQL_RG) because Microsoft.Sql is not registered on
+# Sponsorship and the RG-scoped Contributor there cannot register it.
 env:
   DOTNET_VERSION: '10.0.x'
-  AZURE_RG: rg-prediction-league
-  AZURE_SQL_SERVER: sql-prediction-league
-  AZURE_SQL_HOST: sql-prediction-league.database.windows.net
+  AZURE_RG: rg-dev-jwrona
+  AZURE_SQL_RG: rg-prediction-league
+  AZURE_SQL_SERVER: sql-prediction-league-07cc57
+  AZURE_SQL_HOST: sql-prediction-league-07cc57.database.windows.net
   AZURE_SQL_DB: appdb
   AZURE_SQL_USER: sqladmin
-  AZURE_API_APP: prediction-league-api-0523444a
-  AZURE_FUNC_APP: func-prediction-league
+  AZURE_API_APP: prediction-league-api-07cc57
+  AZURE_FUNC_APP: func-prediction-league-07cc57
   API_PROJECT: src/server/PredictionLeague.Api
   FUNC_PROJECT: src/server/PredictionLeague.Functions
   INFRA_PROJECT: src/server/PredictionLeague.Infrastructure
@@ -113,12 +126,14 @@ jobs:
         with:
           name: migrate-sql
 
-      # azure/webapps-deploy uses the publish profile; az sql firewall-rule needs
-      # a real principal, hence the rg-scoped service principal in AZURE_CREDENTIALS.
-      - name: Azure login (SP)
+      # az sql firewall-rule needs a real principal in the SQL subscription, which sits
+      # in a different tenant than the apps -> its own app registration (OIDC).
+      - name: Azure login to SQL subscription (OIDC)
         uses: azure/login@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_SQL_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_SQL_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SQL_SUBSCRIPTION_ID }}
 
       - name: Install sqlcmd
         run: |
@@ -134,7 +149,7 @@ jobs:
           IP=$(curl -s https://api.ipify.org)
           RULE="ci-${GITHUB_RUN_ID}"
           az sql server firewall-rule create \
-            -g $AZURE_RG -s $AZURE_SQL_SERVER -n $RULE \
+            -g $AZURE_SQL_RG -s $AZURE_SQL_SERVER -n $RULE \
             --start-ip-address $IP --end-ip-address $IP
           echo "rule=$RULE" >> $GITHUB_OUTPUT
 
@@ -150,7 +165,7 @@ jobs:
         if: always() && steps.openfw.outputs.rule != ''
         run: |
           az sql server firewall-rule delete \
-            -g $AZURE_RG -s $AZURE_SQL_SERVER -n ${{ steps.openfw.outputs.rule }}
+            -g $AZURE_SQL_RG -s $AZURE_SQL_SERVER -n ${{ steps.openfw.outputs.rule }}
 
   deploy-api:
     needs: [build, migrate]
@@ -163,27 +178,17 @@ jobs:
           name: api-publish
           path: api-publish
 
-      # SP auth instead of publish-profile: works regardless of SCM Basic Auth
-      # being disabled on the app (Azure default for new apps).
-      - name: Azure login (SP)
-        uses: azure/login@v3
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      # Publish profile instead of Entra auth: the only role on the Sponsorship RG is the
+      # developer's own Contributor, which cannot grant a role to a CI principal. Requires
+      # SCM Basic Auth enabled on the app (+ WEBSITE_WEBDEPLOY_USE_SCM=true on Linux).
+      # The startup command ("dotnet PredictionLeague.Api.dll") is set once on the app
+      # itself — there is no Azure login here to re-pin it on every deploy.
       - name: Deploy API
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_API_APP }}
+          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
           package: api-publish
-
-      # Stale binaries from the 2026-05-23 scaffold deploy (assembly was named
-      # PredictionLeague; renamed to PredictionLeague.Api in the F-01 refactor)
-      # confuse App Service auto-detect → falls back to /defaulthome/hostingstart/.
-      # Pin the entry assembly explicitly. Idempotent.
-      - name: Pin startup command
-        run: |
-          az webapp config set -n $AZURE_API_APP -g $AZURE_RG \
-            --startup-file "dotnet PredictionLeague.Api.dll"
 
   deploy-func:
     needs: [build, migrate]
@@ -196,14 +201,12 @@ jobs:
           name: func-publish
           path: func-publish
 
-      # Flex Consumption does not expose publish profiles; use SP auth.
-      - name: Azure login (SP)
-        uses: azure/login@v3
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      # Publish profile for the same reason as deploy-api; on Flex Consumption the
+      # action needs sku: flexconsumption when authenticating this way.
       - name: Deploy Functions
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ env.AZURE_FUNC_APP }}
+          publish-profile: ${{ secrets.AZURE_FUNC_PUBLISH_PROFILE }}
+          sku: flexconsumption
           package: func-publish
